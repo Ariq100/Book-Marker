@@ -1,0 +1,23 @@
+The four tabs
+The app has four tabs in a bottom tab bar. Search, Library, Quotes, and Vocab. Each is a self-contained section that all lives on-device.
+Search connects to the Open Library API (free, no API key needed). You type a title or author, get results with cover images and metadata, tap into a detail sheet, and hit "Add to Library." That's it.
+Library is your bookshelf — books you've saved are grouped into three shelves: Reading, Bucket List, and Done. The main idea is that you will read physical books, but to keep track of what books you read you can add them here.
+Then, when you go to add quotes, you go to the quotes section and hit the search button, start writing the sentence, and drop down menu will appear with options on what the sentences might looks like. The alogrthm will only 
+search throught the books the you have in the reading section, this will ensure that the results are fast and relevant, and you won't have to write the whole sentence to save it 
+as it might be pain. Later you can scroll all your quotes or search by keyword to find that one line you half-remember.
+Vocab works the same way — you type a word, the app calls the Free Dictionary API (also free, no key needed), fetches the definition automatically, and saves both the word and its meaning together. You can then search your saved words any time by the word or the meaning, an algorithm will try to give you the closest word to the meaning you described.
+
+Tech choices
+Everything runs in SwiftUI with SwiftData for local storage, which means all your books, quotes, and words stay privately on your iPhone with no backend needed. Networking is handled by URLSession (built into Swift). You'll build and test in Xcode 15 or later.
+The two external APIs are both free:
+
+Open Library (openlibrary.org/search.json) for book search
+Free Dictionary API (api.dictionaryapi.dev) for word definitions
+
+
+Build order
+I'd suggest building in four phases so you always have something working:
+Phase 1 — Get Search and Library working end-to-end. This is the foundation everything else attaches to.
+Phase 2 — Add the Quotes section. It's mostly UI and SwiftData models, no API work needed.
+Phase 3 — Add Vocab with the dictionary API. This is where you wire up the network call and auto-fetch the definition on save.
+Phase 4 — Polish, fix edge cases, write the App Store listing, and submit. You'll need an Apple Developer account ($99/year) for this step.
