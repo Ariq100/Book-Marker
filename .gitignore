@@ -1,0 +1,5 @@
+Secrets.xcconfig
+.env
+.DS_Store
+node_modules/
+xcuserdata/

@@ -46,24 +46,26 @@ struct CoverImageView: View {
                 AsyncImage(url: URL(string: "https://covers.openlibrary.org/b/id/\(coverID)-\(size.urlSuffix).jpg")) { phase in
                     switch phase {
                     case .empty:
-                        placeholder.overlay(ProgressView().tint(.white).scaleEffect(0.7))
+                        Self.placeholderView(size: size).overlay(ProgressView().tint(.white).scaleEffect(0.7))
                     case .success(let image):
                         image.resizable().aspectRatio(contentMode: .fill)
                     case .failure:
-                        placeholder
+                        Self.placeholderView(size: size)
                     @unknown default:
-                        placeholder
+                        Self.placeholderView(size: size)
                     }
                 }
             } else {
-                placeholder
+                Self.placeholderView(size: size)
             }
         }
         .frame(width: size.dimensions.width, height: size.dimensions.height)
         .clipShape(RoundedRectangle(cornerRadius: size.cornerRadius))
     }
 
-    private var placeholder: some View {
+    // MARK: - Shared placeholder (used by CachedCoverImageView too)
+
+    static func placeholderView(size: CoverSize) -> some View {
         RoundedRectangle(cornerRadius: size.cornerRadius)
             .fill(
                 LinearGradient(

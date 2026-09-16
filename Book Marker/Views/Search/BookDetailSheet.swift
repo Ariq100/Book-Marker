@@ -151,6 +151,7 @@ struct BookDetailSheet: View {
             title: result.title,
             author: result.author,
             coverID: result.coverID,
+            olid: result.olid,
             shelf: selectedShelf
         )
         modelContext.insert(book)

@@ -1,11 +1,14 @@
 import Foundation
 
 struct BookSearchResult: Identifiable {
-    let id: String
+    let id: String       // Open Library key, e.g. "/works/OL12345W"
     let title: String
     let author: String
     let coverID: Int?
     let firstPublishYear: Int?
+
+    /// The Open Library Work ID — same as `id`, exposed separately for clarity
+    var olid: String { id }
 }
 
 final class OpenLibraryService {
@@ -48,5 +51,15 @@ final class OpenLibraryService {
                 firstPublishYear: doc.first_publish_year
             )
         }
+    }
+
+    // MARK: - Cover Image
+
+    /// Downloads the cover image data for a given coverID and size suffix ("S", "M", "L").
+    func downloadCoverData(coverID: Int, sizeSuffix: String = "M") async -> Data? {
+        guard let url = URL(string: "https://covers.openlibrary.org/b/id/\(coverID)-\(sizeSuffix).jpg") else {
+            return nil
+        }
+        return try? await URLSession.shared.data(from: url).0
     }
 }

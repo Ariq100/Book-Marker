@@ -14,23 +14,45 @@ struct LibraryView: View {
         GridItem(.adaptive(minimum: 100, maximum: 130), spacing: 16)
     ]
 
+    @State private var showingSearch = false
+
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                shelfPicker
-                    .padding(.horizontal)
-                    .padding(.bottom, 8)
+            ZStack {
+                VStack(spacing: 0) {
+                    shelfPicker
+                        .padding(.horizontal)
+                        .padding(.bottom, 8)
 
-                Divider()
+                    Divider()
 
-                if booksOnShelf.isEmpty {
-                    emptyShelfView
-                } else {
-                    bookGrid
+                    if booksOnShelf.isEmpty {
+                        emptyShelfView
+                    } else {
+                        bookGrid
+                    }
+                }
+                
+                if showingSearch {
+                    SpotlightSearchOverlay(isPresented: $showingSearch)
+                        // Make sure it sits on top of everything
+                        .zIndex(2)
                 }
             }
             .navigationTitle("Library")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showingSearch = true
+                        }
+                    } label: {
+                        Image(systemName: "plus")
+                            .fontWeight(.semibold)
+                    }
+                }
+            }
         }
     }
 
@@ -49,6 +71,7 @@ struct LibraryView: View {
     private var emptyShelfView: some View {
         VStack(spacing: 16) {
             Spacer()
+            
             Image(systemName: selectedShelf.systemImage)
                 .font(.system(size: 52))
                 .foregroundStyle(
@@ -58,15 +81,17 @@ struct LibraryView: View {
                         endPoint: .bottom
                     )
                 )
+            
             Text("No books here yet")
                 .font(.title3.weight(.semibold))
-            Text("Search for a book and add it to\n\"\(selectedShelf.rawValue)\"")
+                
+            Text("Click the (+) icon to add something")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
+            
             Spacer()
         }
-        .padding()
     }
 
     private var bookGrid: some View {
@@ -94,7 +119,7 @@ struct BookGridCell: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            CoverImageView(coverID: book.coverID, size: .medium)
+            CachedCoverImageView(book: book, size: .medium)
                 .shadow(color: .black.opacity(0.18), radius: 6, x: 0, y: 3)
 
             VStack(spacing: 3) {
