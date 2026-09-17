@@ -23,34 +23,12 @@
 //
 // Also update each model's init() to set: needsSync = true, remoteID = nil, updatedAt = Date()
 
-// REQUIRED SUPABASE RLS POLICIES — run the following SQL in your Supabase SQL Editor for each table.
-// Replace `books`, `quotes`, and `vocab_words` accordingly.
-//
-// -- Enable RLS (if not already enabled)
-// ALTER TABLE books ENABLE ROW LEVEL SECURITY;
-//
-// -- SELECT: users can only read their own rows
-// CREATE POLICY "Users can select own books"
-//   ON books FOR SELECT
-//   USING (auth.uid() = user_id);
-//
-// -- INSERT: users can only insert rows for themselves
-// CREATE POLICY "Users can insert own books"
-//   ON books FOR INSERT
-//   WITH CHECK (auth.uid() = user_id);
-//
-// -- UPDATE: users can only update their own rows
-// CREATE POLICY "Users can update own books"
-//   ON books FOR UPDATE
-//   USING (auth.uid() = user_id)
-//   WITH CHECK (auth.uid() = user_id);
-//
-// -- DELETE: users can only delete their own rows
-// CREATE POLICY "Users can delete own books"
-//   ON books FOR DELETE
-//   USING (auth.uid() = user_id);
-//
-// Repeat the above for `quotes` and `vocab_words` tables, adjusting the policy names accordingly.
+// REQUIRED SUPABASE RLS POLICIES — see supabase/migrations/ for the actual, versioned SQL
+// (0001_enable_rls_and_ownership_policies.sql) rather than duplicating it here. Every
+// user-owned table (books, quotes, vocab_words) has RLS enabled with SELECT/INSERT/UPDATE/DELETE
+// policies scoped to `auth.uid() = user_id`, including WITH CHECK on INSERT/UPDATE so a client
+// can never spoof or reassign ownership. See SECURITY.md for the full model and how to run the
+// RLS test suite in supabase/tests/rls_tests.sql.
 
 // CONFLICT RESOLUTION — DELIBERATE SIMPLIFICATION:
 // This implementation uses a last-write-wins strategy: when a remote row has a newer `updated_at`
@@ -78,6 +56,7 @@ struct RemoteBook: Codable {
     var title: String
     var author: String
     var coverId: Int?
+    var coverUrl: String?
     var olid: String?
     var shelf: String          // Shelf.rawValue
     var dateAdded: Date
@@ -90,6 +69,7 @@ struct RemoteBook: Codable {
         case title
         case author
         case coverId     = "cover_id"
+        case coverUrl    = "cover_url"
         case olid
         case shelf
         case dateAdded   = "date_added"
@@ -104,6 +84,10 @@ struct RemoteQuote: Codable {
     var localId: UUID
     var text: String
     var bookTitle: String
+    /// FK to `books.id` (the REMOTE book id, i.e. `Book.remoteID`) — not the local SwiftData id.
+    var bookId: UUID?
+    var pageNumber: Int?
+    var note: String?
     var dateAdded: Date
     var updatedAt: Date
 
@@ -113,6 +97,9 @@ struct RemoteQuote: Codable {
         case localId   = "local_id"
         case text
         case bookTitle = "book_title"
+        case bookId    = "book_id"
+        case pageNumber = "page_number"
+        case note
         case dateAdded = "date_added"
         case updatedAt = "updated_at"
     }
@@ -125,6 +112,10 @@ struct RemoteVocabWord: Codable {
     var localId: UUID
     var word: String
     var definition: String
+    /// FK to `books.id` (the REMOTE book id, i.e. `Book.remoteID`) — not the local SwiftData id.
+    var bookId: UUID?
+    var pageNumber: Int?
+    var note: String?
     var dateAdded: Date
     var updatedAt: Date
 
@@ -134,6 +125,9 @@ struct RemoteVocabWord: Codable {
         case localId   = "local_id"
         case word
         case definition
+        case bookId    = "book_id"
+        case pageNumber = "page_number"
+        case note
         case dateAdded = "date_added"
         case updatedAt = "updated_at"
     }
@@ -211,6 +205,7 @@ actor SyncManager {
                     title: book.title,
                     author: book.author,
                     coverId: book.coverID,
+                    coverUrl: book.coverURLString,
                     olid: book.olid,
                     shelf: book.shelf.rawValue,
                     dateAdded: book.dateAdded,
@@ -223,6 +218,20 @@ actor SyncManager {
                 .execute()
 
             dirtyBooks.forEach { $0.needsSync = false }
+        }
+
+        // Ensures the book linked to a quote/word has a remoteID to use as its FK, assigning
+        // one now if that book hasn't synced yet. Does not push the book itself here — the
+        // book will sync on its own next time (or was just pushed above in this same call).
+        func remoteBookID(forLocalBookID localBookID: UUID?) -> UUID? {
+            guard let localBookID else { return nil }
+            let descriptor = FetchDescriptor<Book>(predicate: #Predicate { $0.id == localBookID })
+            guard let book = (try? modelContext.fetch(descriptor))?.first else { return nil }
+            if let existing = book.remoteID { return existing }
+            let newRemoteID = UUID()
+            book.remoteID = newRemoteID
+            book.needsSync = true // ensure it gets pushed on a future syncUp
+            return newRemoteID
         }
 
         // --- Quotes ---
@@ -241,6 +250,9 @@ actor SyncManager {
                     localId: quote.id,
                     text: quote.text,
                     bookTitle: quote.bookTitle,
+                    bookId: remoteBookID(forLocalBookID: quote.bookID),
+                    pageNumber: quote.pageNumber,
+                    note: quote.note,
                     dateAdded: quote.dateAdded,
                     updatedAt: quote.updatedAt
                 )
@@ -269,6 +281,9 @@ actor SyncManager {
                     localId: word.id,
                     word: word.word,
                     definition: word.definition,
+                    bookId: remoteBookID(forLocalBookID: word.bookID),
+                    pageNumber: word.pageNumber,
+                    note: word.note,
                     dateAdded: word.dateAdded,
                     updatedAt: word.updatedAt
                 )
@@ -333,6 +348,7 @@ actor SyncManager {
                 title: remote.title,
                 author: remote.author,
                 coverID: remote.coverId,
+                coverURLString: remote.coverUrl,
                 olid: remote.olid,
                 shelf: Shelf(rawValue: remote.shelf) ?? .bucketList
             )
@@ -344,11 +360,20 @@ actor SyncManager {
             return book
         }
 
+        // remote book id -> local book id, so quotes/words can resolve their book_id FK
+        // (stored server-side against the remote id) back to the local SwiftData Book.id.
+        let remoteToLocalBookID: [UUID: UUID] = Dictionary(
+            uniqueKeysWithValues: remoteBooks.map { ($0.id, $0.localId) }
+        )
+
         let quotes: [Quote] = remoteQuotes.map { remote in
             let quote = Quote(
                 id: remote.localId,
                 text: remote.text,
-                bookTitle: remote.bookTitle
+                bookTitle: remote.bookTitle,
+                bookID: remote.bookId.flatMap { remoteToLocalBookID[$0] },
+                pageNumber: remote.pageNumber,
+                note: remote.note
             )
             quote.dateAdded = remote.dateAdded
             quote.remoteID = remote.id
@@ -361,7 +386,10 @@ actor SyncManager {
             let word = VocabWord(
                 id: remote.localId,
                 word: remote.word,
-                definition: remote.definition
+                definition: remote.definition,
+                bookID: remote.bookId.flatMap { remoteToLocalBookID[$0] },
+                pageNumber: remote.pageNumber,
+                note: remote.note
             )
             word.dateAdded = remote.dateAdded
             word.remoteID = remote.id

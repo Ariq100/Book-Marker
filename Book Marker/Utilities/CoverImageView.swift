@@ -1,8 +1,20 @@
 import SwiftUI
 
 struct CoverImageView: View {
-    let coverID: Int?
+    let imageURL: URL?
     let size: CoverSize
+
+    /// Convenience initializer for Open Library results/cached books, which still address
+    /// cover art by a numeric ID rather than a direct URL.
+    init(coverID: Int?, size: CoverSize) {
+        self.imageURL = coverID.flatMap { URL(string: "https://covers.openlibrary.org/b/id/\($0)-\(size.urlSuffix).jpg") }
+        self.size = size
+    }
+
+    init(imageURL: URL?, size: CoverSize) {
+        self.imageURL = imageURL
+        self.size = size
+    }
 
     enum CoverSize {
         case small, medium, large
@@ -42,8 +54,8 @@ struct CoverImageView: View {
 
     var body: some View {
         Group {
-            if let coverID {
-                AsyncImage(url: URL(string: "https://covers.openlibrary.org/b/id/\(coverID)-\(size.urlSuffix).jpg")) { phase in
+            if let imageURL {
+                AsyncImage(url: imageURL) { phase in
                     switch phase {
                     case .empty:
                         Self.placeholderView(size: size).overlay(ProgressView().tint(.white).scaleEffect(0.7))

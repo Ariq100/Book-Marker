@@ -161,13 +161,7 @@ struct SearchView: View {
     private func performSearch(query: String) async {
         isLoading = true
         errorMessage = nil
-        do {
-            results = try await OpenLibraryService.shared.search(query: query)
-        } catch {
-            guard !Task.isCancelled else { return }
-            errorMessage = "Search failed. Check your connection and try again."
-            results = []
-        }
+        results = await BookSearchCoordinator.shared.searchAll(query: query)
         isLoading = false
     }
 }
@@ -179,7 +173,7 @@ struct SearchResultRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            CoverImageView(coverID: result.coverID, size: .small)
+            CoverImageView(imageURL: result.coverImageURL, size: .small)
                 .shadow(color: .black.opacity(0.15), radius: 4, x: 0, y: 2)
 
             VStack(alignment: .leading, spacing: 4) {

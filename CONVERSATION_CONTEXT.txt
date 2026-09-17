@@ -1,0 +1,301 @@
+BOOK MARKER — CLAUDE CODE SESSION CONTEXT
+==========================================
+A running record of what was discussed and implemented in this Claude Code conversation,
+covering the Book Marker iOS app (SwiftUI + SwiftData + Supabase).
+
+
+PART 1 — INITIAL BUILD FAILURE
+================================
+User report: Xcode build was failing after attempting to implement Supabase. Asked to
+implement Supabase "from the beginning."
+
+Investigation found the Supabase integration was actually already mostly correct
+(supabase-swift added via SPM, Secrets.xcconfig wired as base config, Info.plist keys mapped
+to build settings). The actual build error was a single type mismatch:
+
+  Book Marker/Services/AuthManager.swift:31
+  SupabaseClient(supabaseURL: SupabaseConfig.projectURL, ...)
+  — passed a String where a URL was required.
+
+Fix applied: wrapped in URL(string:)!, matching the pattern already used elsewhere.
+
+Additional cleanup performed:
+  - Deleted Book Marker/Supabase.swift — a second, entirely unused SupabaseClient instance
+    that duplicated AuthManager.shared.client (removed stale pbxproj entries too).
+  - Removed leftover Node.js artifacts that didn't belong in a Swift project: node_modules/,
+    package.json, package-lock.json, skills-lock.json, .env (these were remnants of following
+    a Node/Edge-Function-flavored Supabase quickstart that didn't apply to a native iOS app).
+  - Hardened .gitignore: added .env, .DS_Store, node_modules/, xcuserdata/.
+  - User chose to switch the app to a new Supabase project (mimqecwisgzpdbeygcyj) instead of
+    the previously configured one (degtbcqfovajfmmywgjf); Secrets.xcconfig was updated
+    accordingly.
+
+Result: BUILD SUCCEEDED (verified via `xcodebuild ... build`).
+
+
+PART 2 — RUNTIME CRASH: "SUPABASE_URL missing from build settings"
+=====================================================================
+After the build fix, the user got a runtime fatal error in Config.swift when actually running
+the app. Root-caused to two separate, compounding bugs:
+
+  1. .xcconfig files treat "//" as a start-of-line COMMENT MARKER. The line
+     `SUPABASE_URL = https://mimqecwisgzpdbeygcyj.supabase.co` was silently truncated to just
+     `https:` when Xcode parsed Secrets.xcconfig.
+  2. Escaping the slashes (`https:\/\/...`) does NOT fix it — verified with PlistBuddy that
+     literal backslash characters end up in the actual string value, which would produce a
+     broken URL (URL(string:) would fail or misparse it).
+  3. Separately (and independently), Xcode's synthetic INFOPLIST_KEY_* → Info.plist generation
+     mechanism (GENERATE_INFOPLIST_FILE = YES) was not honoring ANY custom keys in this Xcode
+     version — confirmed even a trivial literal string key (NSHumanReadableDescription) never
+     made it into the built Info.plist.
+
+Fix applied:
+  - Secrets.xcconfig now stores just the bare project ref (SUPABASE_PROJECT_REF =
+    mimqecwisgzpdbeygcyj) — no slashes/colons at all, sidestepping the comment-parsing trap
+    entirely.
+  - Added a REAL physical Info.plist file (Book Marker/Info.plist) with all standard bundle
+    keys (CFBundleIdentifier, CFBundleExecutable, etc. — normally auto-injected by the
+    synthetic mechanism, had to be added explicitly once GENERATE_INFOPLIST_FILE was set to
+    NO) plus SupabaseProjectRef / SupabaseAnonKey placeholders substituted via
+    INFOPLIST_FILE = "Book Marker/Info.plist".
+  - Config.swift rewritten to read SupabaseProjectRef and construct the full URL in Swift:
+    URL(string: "https://\(ref).supabase.co"). projectURL is now typed as URL (not String).
+  - AuthManager.swift updated accordingly (no more force-unwrapped URL(string:) call needed).
+
+Verification: rebuilt clean, inspected the actual bytes in the built Info.plist via PlistBuddy
+(CFBundleIdentifier, SupabaseProjectRef, SupabaseAnonKey all correct, no escaping artifacts),
+then installed and launched the app in an iOS Simulator via `xcrun simctl` (had to work around
+this environment's Bash-tool sandbox blocking simctl IPC — used dangerouslyDisableSandbox for
+simctl install/launch/boot only) — app launched and stayed alive with no crash and no crash
+report on disk.
+
+
+PART 3 — README
+=================
+Created README.md: project description, feature list (Library/Quotes/Vocab/Spotlight
+search/account sync/offline-first), tech stack (SwiftUI, SwiftData, supabase-swift, Open
+Library API, Free Dictionary API), project structure tree, and setup instructions
+(Secrets.xcconfig template, required Supabase tables/RLS pointer).
+
+
+PART 4 — SECURITY HARDENING + BOOK PROVIDER ARCHITECTURE (large multi-part task)
+===================================================================================
+User provided an extensive (25-section) specification covering: Supabase key-model security,
+full database RLS audit, least-privilege PostgreSQL grants, a provider-agnostic book-search
+architecture across 7 external book APIs, Edge-Function-mediated access to key-gated
+providers, copyright-safe full-text handling, and a suite of documentation/tests — plus a
+second directive treating a previously-shared Supabase secret/service_role key as
+COMPROMISED and requiring an audit + migration to a secure architecture.
+
+4.1 — Compromised-key incident response
+  Searched the entire repo, full git history (both commits: "Created the Base" and "Added a
+  login feature, and implemented the backend"), and build artifacts for any service_role/
+  secret key value. Found NONE — the values that appeared in the chat transcript were
+  Supabase's own dashboard-truncated/redacted display strings (never a complete usable key),
+  and the one local file that ever referenced a secret key (.env) was untracked and had
+  already been deleted in an earlier part of this session. Conclusion documented in
+  SECURITY.md: treat any credential that passed through a chat as burned regardless, and gave
+  exact dashboard rotation steps (Project Settings → API Keys → Secret keys → rotate/revoke)
+  without ever asking for or reproducing the key itself.
+
+4.2 — Database security (supabase/migrations/)
+  0001_enable_rls_and_ownership_policies.sql
+    - Ensures user_id on books/quotes/vocab_words defaults to auth.uid() and has a NOT NULL
+      FK to auth.users(id) ON DELETE CASCADE.
+    - ENABLE + FORCE ROW LEVEL SECURITY on all three tables.
+    - SELECT/INSERT/UPDATE/DELETE policies requiring auth.uid() = user_id, with WITH CHECK on
+      INSERT and UPDATE (blocks both inserting-as-another-user and reassigning an owned row's
+      user_id to someone else — USING alone would not catch the reassignment case).
+    - No anon policy anywhere → default-deny for unauthenticated requests once RLS is forced.
+  0002_book_association_and_cover_url.sql
+    - Additive columns: books.cover_url; quotes/vocab_words.book_id (FK to books.id, ON
+      DELETE SET NULL), page_number (CHECK > 0), note (CHECK length <= 2000).
+    - Indexes on the new book_id columns.
+  0003_least_privilege_grants.sql
+    - Explicitly REVOKEs all default/anon/PUBLIC grants on the three tables, then GRANTs
+      `authenticated` only SELECT/INSERT/UPDATE/DELETE (not ownership/TRUNCATE/etc).
+    - ALTER DEFAULT PRIVILEGES so future tables don't inherit a permissive anon grant.
+    - Documents that no custom RPC/database functions exist in this schema today, and a
+      checklist to apply if one is ever added.
+  supabase/tests/rls_tests.sql
+    - Manual, runnable-via-psql RLS verification script (wrapped in BEGIN/ROLLBACK, never
+      commits). Seven checks: user A reads own quote (pass); user B cannot read/update/delete
+      user A's quote (denied); user B cannot insert a quote owned by user A (denied); user A
+      cannot reassign their own quote's user_id to user B (denied); anonymous role cannot read
+      a private quote (denied).
+
+  IMPORTANT CAVEAT (told to user explicitly): these migrations were WRITTEN but NOT applied
+  to the live Supabase database — no DB/CLI credentials were available in this session. The
+  user must run `supabase db push` (or paste the SQL into the Supabase SQL Editor) before the
+  database is actually protected by these policies.
+
+4.3 — Supabase Edge Functions (supabase/functions/)
+  Built using the @supabase/server package (per the project's own bundled
+  .agents/skills/supabase-server/SKILL.md, which was read and followed — auth: 'user' mode,
+  which authenticates the caller's JWT automatically and handles CORS, before the handler
+  body ever runs).
+    - search-google-books/index.ts — proxies Google Books' volumes search; holds
+      GOOGLE_BOOKS_API_KEY server-side only; validates query length; never forwards Google's
+      raw error bodies (could echo the key back); fixed upstream host, not a generic proxy.
+    - search-europeana/index.ts — same pattern for Europeana's record search API, holding
+      EUROPEANA_API_KEY.
+    - delete-account/index.ts — was already being called by AuthManager.swift
+      (client.functions.invoke("delete-account")) but had never actually been implemented
+      anywhere in the repo. Implemented now: deletes ONLY the calling user's own account
+      (resolved via ctx.supabase.auth.getUser(), never a client-supplied id) using
+      ctx.supabaseAdmin.auth.admin.deleteUser(...); cascades to that user's books/quotes/
+      vocab_words via the ON DELETE CASCADE FK from migration 0001.
+  supabase/config.toml — minimal CLI project config; verify_jwt left at its default (true)
+  since all three functions use auth: 'user'.
+
+  IMPORTANT CAVEAT: none of these functions were actually deployed (no Supabase CLI session
+  available). Exact deploy commands given in SECRETS_SETUP.md.
+
+4.4 — Book provider architecture (Swift — compiles clean, verified via xcodebuild)
+  New files under Book Marker/Services/BookProviders/:
+    - BookSearchModels.swift — BookProviderID enum (openLibrary, googleBooks,
+      internetArchive, gutendex, libraryOfCongress, europeana, hathiTrust);
+      ContentAvailability enum (fullTextAvailable / previewOnly / metadataOnly /
+      userProvidedText / ocrCaptured / unavailable); RightsInformation; the provider-agnostic
+      BookSearchResult struct (title, subtitle, authors, isbn10/13, publisher,
+      publicationDate, edition, language, coverImageURL, provider, providerID, availability,
+      fullTextAvailable, previewAvailable, searchableInside, textSource, rightsInformation)
+      with back-compat convenience accessors (author, firstPublishYear, olid) so existing UI
+      code kept working with minimal changes.
+    - BookProvider.swift — the protocol (searchBooks, findBook(isbn:), bookDetails,
+      searchInsideBook, fullText) with a protocol-extension default ("unsupported, returns
+      nil/empty") so each concrete provider only implements what it actually supports.
+    - EdgeFunctionClient.swift — shared helper that authenticates to this app's own Edge
+      Functions using the current Supabase session's access token + the publishable anon key;
+      returns nil (not a hard error) when there's no signed-in user, so a key-gated provider
+      degrades gracefully instead of crashing search.
+    - Concrete providers:
+        OpenLibraryService.swift (existing file, extended) — now conforms to BookProvider;
+          added ISBN lookup via Open Library's "Books API"; added a best-effort, honestly
+          "experimental" Search Inside implementation (Open Library's own docs mark it
+          experimental) that correctly discovers the per-item archive.org host via a
+          /metadata/{id} lookup first, rather than hardcoding a wrong subdomain; added a
+          descriptive User-Agent per Open Library's usage guidelines.
+        GutendexProvider.swift — Project Gutenberg via Gutendex; the ONE provider allowed to
+          assert fullTextAvailable directly from search results, since Gutenberg only ever
+          hosts public-domain works.
+        InternetArchiveProvider.swift — search always defaults to metadataOnly; only
+          bookDetails(providerID:) (a second, explicit metadata fetch checking
+          access-restricted-item and whether a real _djvu.txt OCR file is listed) is ever
+          allowed to upgrade a result to fullTextAvailable — deliberately conservative per the
+          copyright-safety requirement.
+        LibraryOfCongressProvider.swift — metadata-only, keyless.
+        HathiTrustProvider.swift — verified via live web search that HathiTrust's
+          Bibliographic API is free and keyless (contrary to the task's assumption that it
+          might need credentials); implements ISBN lookup against it; explicitly does NOT
+          implement full-text access, since that requires HathiTrust's separate, institutional
+          Data API which is out of scope.
+        GoogleBooksProvider.swift / EuropeanaProvider.swift — call this app's own Edge
+          Functions (never the third-party API directly), decode a normalized DTO the Edge
+          Function returns.
+    - BookSearchCoordinator.swift — an actor that fans a search out to all providers
+      CONCURRENTLY (TaskGroup, not sequential-with-fallback), swallows individual provider
+      errors so one failing provider never blocks the others, then deduplicates results
+      (ISBN-13 > ISBN-10 > normalized title+author, in that preference order) and picks the
+      "best" representative per group (prefers confirmed full text, then a cover image, then
+      richer metadata, then a fixed provider-priority order).
+
+  Existing UI wired to the new architecture with minimal, targeted edits:
+    - CoverImageView.swift — generalized from an Open-Library-only coverID: Int? parameter to
+      accept any imageURL: URL?, with a coverID-based convenience initializer kept for source
+      compatibility.
+    - SearchView.swift / SpotlightSearchOverlay.swift — now call
+      BookSearchCoordinator.shared.searchAll(query:) instead of
+      OpenLibraryService.shared.search(query:) directly (one-line swap each).
+    - BookDetailSheet.swift — saveBook() now stores either the legacy numeric Open Library
+      coverID (kept for its nicer resizable-image variants) or a generic coverURLString for
+      every other provider.
+    - Book.swift — added coverURLString: String? (additive; existing coverID field and all
+      already-synced remote data untouched).
+    - CoverImageCache.swift — prefers coverURLString when present, falls back to the legacy
+      numeric-coverID Open Library path otherwise.
+
+4.5 — Data model: associate quotes/words with a specific book, page numbers, notes
+    - Quote.swift / VocabWord.swift — added bookID: UUID?, pageNumber: Int?, note: String?
+      (all optional, additive, default nil — SwiftData migrates this automatically in DEBUG
+      per the existing pattern already documented in BookMarkerApp.swift).
+    - AddQuoteView.swift — saveQuote() now passes bookID: book.id (a real, concrete
+      association win, since the book is already selected in that flow) — NOTE: no UI was
+      built for entering page number or note; those fields exist and sync but aren't yet
+      editable from the app. Flagged explicitly to the user as deferred, not forgotten.
+    - SyncManager.swift — RemoteBook gained cover_url; RemoteQuote/RemoteVocabWord gained
+      book_id/page_number/note. Because the local Quote/VocabWord.bookID stores the LOCAL
+      SwiftData Book.id but the remote FK must reference the REMOTE books.id
+      (Book.remoteID), syncUp() resolves/assigns a remoteID for the linked book on demand
+      (assigning one and marking it needsSync if it didn't have one yet), and syncDown()
+      builds a remote-book-id -> local-book-id map from the already-fetched remoteBooks array
+      to translate the FK back when reconstructing local Quote/VocabWord instances.
+
+4.6 — Documentation created
+    - SECURITY.md — incident note + rotation steps; the two governing rules (extracted public
+      key must never expose another user's data; no secret key ever ships in the app); full
+      Supabase key-model table; RLS architecture explanation (why WITH CHECK matters
+      specifically, not just USING); database ownership model; Storage security (documented
+      as NOT currently used, with the policy pattern to follow if it's ever added); Edge
+      Function security (auth mode, fixed-endpoint-only, no generic proxy, error-body
+      handling); secret management rules; copyright/content-access rules tied to
+      ContentAvailability; how to rotate a key; how to add another provider; how to run the
+      RLS test script; an App Store/production checklist marking what's done vs. what still
+      needs the user's manual review (privacy nutrition label, third-party ToS review at
+      scale, production rate limiting, Sign in with Apple redirect config).
+    - SECRETS_SETUP.md — numbered, copy-pasteable steps: Secrets.xcconfig client-side config;
+      linking the Supabase CLI; applying migrations; obtaining + setting GOOGLE_BOOKS_API_KEY
+      and EUROPEANA_API_KEY (with exact registration URLs and "is this free / is this
+      required" answers); why HathiTrust needs no key; deploying the three Edge Functions;
+      how to verify a secret is NOT returned to the client (a literal curl example); how to
+      verify no secret is present in the repo or the built binary (grep + `strings` on the
+      compiled binary); local-dev instructions using .env (gitignored) copied from
+      .env.example.
+    - BOOK_API_PROVIDERS.md — the full requested matrix (provider / purpose / endpoint / auth
+      / required secret / where to obtain it / rate limits / full-text availability /
+      copyright-access limits / caching strategy) for all 7 providers, each fact verified
+      against that provider's current documentation in this session (not assumed from
+      training data) via WebFetch/WebSearch — notably this is how it was confirmed that
+      Google Books currently requires a key, Open Library's Search Inside is still marked
+      experimental, and HathiTrust's Bibliographic API is free/keyless.
+    - .env.example — placeholders only (GOOGLE_BOOKS_API_KEY=, EUROPEANA_API_KEY=,
+      HATHITRUST_API_KEY= with an explanatory comment that it isn't currently needed).
+    - .gitignore — extended to explicitly exclude .env / .env.* while un-ignoring
+      .env.example, plus Supabase CLI local-state directories.
+
+4.7 — Verification performed before reporting done
+    - Ran a full, repo-wide final secret scan (service_role|SUPABASE_SERVICE_ROLE|
+      SUPABASE_SECRET|secret|apikey|api_key|authorization|bearer across all Swift/TS/SQL/
+      TOML/xcconfig/plist/pbxproj/md files) and manually classified every hit — all were
+      either documentation explaining the rules, environment-variable NAMES (not values) read
+      via Deno.env.get() server-side, or the normal Authorization/apikey headers an
+      authenticated client is expected to send (the user's own session token + the public
+      publishable key) — nothing classified as an exposed credential.
+    - Installed the `xcodeproj` Ruby gem (not previously present) to programmatically add the
+      10 new Swift files to the .xcodeproj — first attempt put them in the wrong pbxproj
+      group (resolved to the wrong on-disk directory, causing "Build input files cannot be
+      found" errors); caught this via a full xcodebuild run, corrected the group's `path`
+      attribute, and rebuilt clean with zero errors before considering the work done.
+    - Confirmed via `git status` that no secret-bearing file (Secrets.xcconfig, .env) is
+      staged or newly tracked, and that only the intended new/modified files are present.
+
+
+KEY OPEN ITEMS FOR THE USER (not yet done, require their own credentials/dashboard access)
+=============================================================================================
+  1. Run `supabase link` + `supabase db push` to actually apply the three migrations — the
+     database is not yet protected by the new RLS policies until this is done.
+  2. Deploy the three Edge Functions (`supabase functions deploy ...`).
+  3. Rotate the previously-shared Supabase secret key via the dashboard (Project Settings ->
+     API Keys), even though no full/usable value was found anywhere in the repo or its
+     history.
+  4. Optionally obtain + set GOOGLE_BOOKS_API_KEY and/or EUROPEANA_API_KEY as Edge Function
+     secrets if those two providers' results are wanted (app works fine without them — they
+     just return no results until configured).
+  5. Check Supabase's own Security Advisor in the dashboard after migrating (not reachable
+     from this session).
+  6. Build UI for entering a quote/word's page number and note (model + sync support exist;
+     no form fields yet).
+  7. Consider adding caching/rate-limiting in front of the two key-gated Edge Functions before
+     wider release.
+  8. Review the App Store checklist in SECURITY.md (privacy nutrition label, third-party API
+     ToS at scale, Sign in with Apple production redirect config).

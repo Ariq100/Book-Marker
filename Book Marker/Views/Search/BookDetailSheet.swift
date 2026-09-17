@@ -50,7 +50,7 @@ struct BookDetailSheet: View {
 
     private var coverHero: some View {
         VStack {
-            CoverImageView(coverID: result.coverID, size: .large)
+            CoverImageView(imageURL: result.coverImageURL, size: .large)
                 .shadow(color: .black.opacity(0.35), radius: 24, x: 0, y: 12)
         }
     }
@@ -147,10 +147,20 @@ struct BookDetailSheet: View {
     // MARK: - Logic
 
     private func saveBook() {
+        // Open Library covers are still addressed by numeric ID (gives us resizable variants
+        // via CoverImageCache); every other provider hands back a direct image URL instead.
+        let openLibraryCoverID: Int? = {
+            guard result.provider == .openLibrary, let url = result.coverImageURL else { return nil }
+            let filename = url.lastPathComponent // "12345-M.jpg"
+            let idPart = filename.split(separator: "-").first.map(String.init)
+            return idPart.flatMap(Int.init)
+        }()
+
         let book = Book(
             title: result.title,
             author: result.author,
-            coverID: result.coverID,
+            coverID: openLibraryCoverID,
+            coverURLString: openLibraryCoverID == nil ? result.coverImageURL?.absoluteString : nil,
             olid: result.olid,
             shelf: selectedShelf
         )

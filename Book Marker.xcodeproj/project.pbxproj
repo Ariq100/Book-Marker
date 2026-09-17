@@ -10,6 +10,15 @@
 		0A1B66A22FF84D8B001F7B6D /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = CCAAAAAAAAAAAAAAAAAAAAAAAAE1 /* Supabase */; };
 		0AABA648300007030065F386 /* SwiftASN1 in Frameworks */ = {isa = PBXBuildFile; productRef = 0AABA647300007030065F386 /* SwiftASN1 */; };
 		0AABA64B300007450065F386 /* X509 in Frameworks */ = {isa = PBXBuildFile; productRef = 0AABA64A300007450065F386 /* X509 */; };
+		1135C0D3A377EBF5C705341A /* LibraryOfCongressProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AD0B4A3AFF805E3F83A3F52 /* LibraryOfCongressProvider.swift */; };
+		25F622E501437EA1D9338281 /* HathiTrustProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE70A95F3D73B31A291495EC /* HathiTrustProvider.swift */; };
+		5603597626C2B089DBEDAA79 /* InternetArchiveProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14983BA3F6397E99493D508D /* InternetArchiveProvider.swift */; };
+		5696A3A626C60D9491E97FBA /* EdgeFunctionClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8DF35DEAEB6C7E0BD3E3670 /* EdgeFunctionClient.swift */; };
+		63CBC09A103E4D9F5F069D74 /* GutendexProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54E1278D773D7C7CC3007C77 /* GutendexProvider.swift */; };
+		6F8394A0DF0D2DFF753AD3C3 /* EuropeanaProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 860B9B325EA3057D35CEC636 /* EuropeanaProvider.swift */; };
+		8369839BC83B57FAD9D4AAB6 /* BookSearchModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99A01F7894F3547C32886F40 /* BookSearchModels.swift */; };
+		8D87B290931C2B3A021D94E9 /* BookSearchCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBBBF26096202BBB10FD2577 /* BookSearchCoordinator.swift */; };
+		8EF0ED4A860C3ED14FE5DB80 /* GoogleBooksProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACF42C7D13FD38D9D55C12C6 /* GoogleBooksProvider.swift */; };
 		BB00000000000000000000A1 /* BookMarkerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000A1 /* BookMarkerApp.swift */; };
 		BB00000000000000000000A2 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000A2 /* ContentView.swift */; };
 		BB00000000000000000000A3 /* Book.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000A3 /* Book.swift */; };
@@ -35,11 +44,17 @@
 		BBAAAAAAAAAAAAAAAAAAAAD3 /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAAAAAAAAAAAAAAAAAAAAAAD3 /* AuthView.swift */; };
 		BBAAAAAAAAAAAAAAAAAAAAD4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAAAAAAAAAAAAAAAAAAAAAAD4 /* SettingsView.swift */; };
 		BBAAAAAAAAAAAAAAAAAAAAD5 /* SyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAAAAAAAAAAAAAAAAAAAAAAD5 /* SyncManager.swift */; };
-		BBAAAAAAAAAAAAAAAAAAAAE1 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
+		BBAAAAAAAAAAAAAAAAAAAAE1 /* BuildFile in Frameworks */ = {isa = PBXBuildFile; };
+		CDB81E94D7BEDEF013CB7AD0 /* BookProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD087604215D028131FA1A18 /* BookProvider.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		0A1B66A32FF93913001F7B6D /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
+		14983BA3F6397E99493D508D /* InternetArchiveProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = InternetArchiveProvider.swift; sourceTree = "<group>"; };
+		4AD0B4A3AFF805E3F83A3F52 /* LibraryOfCongressProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LibraryOfCongressProvider.swift; sourceTree = "<group>"; };
+		54E1278D773D7C7CC3007C77 /* GutendexProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GutendexProvider.swift; sourceTree = "<group>"; };
+		860B9B325EA3057D35CEC636 /* EuropeanaProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EuropeanaProvider.swift; sourceTree = "<group>"; };
+		99A01F7894F3547C32886F40 /* BookSearchModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BookSearchModels.swift; sourceTree = "<group>"; };
 		AA00000000000000000000A1 /* BookMarkerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookMarkerApp.swift; sourceTree = "<group>"; };
 		AA00000000000000000000A2 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		AA00000000000000000000A3 /* Book.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Book.swift; sourceTree = "<group>"; };
@@ -67,6 +82,11 @@
 		AAAAAAAAAAAAAAAAAAAAAAAAD4 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		AAAAAAAAAAAAAAAAAAAAAAAAD5 /* SyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncManager.swift; sourceTree = "<group>"; };
 		AAAAAAAAAAAAAAAAAAAAAAAAD6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		ACF42C7D13FD38D9D55C12C6 /* GoogleBooksProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GoogleBooksProvider.swift; sourceTree = "<group>"; };
+		AD087604215D028131FA1A18 /* BookProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BookProvider.swift; sourceTree = "<group>"; };
+		B8DF35DEAEB6C7E0BD3E3670 /* EdgeFunctionClient.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EdgeFunctionClient.swift; sourceTree = "<group>"; };
+		DE70A95F3D73B31A291495EC /* HathiTrustProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HathiTrustProvider.swift; sourceTree = "<group>"; };
+		EBBBF26096202BBB10FD2577 /* BookSearchCoordinator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BookSearchCoordinator.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -75,7 +95,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0A1B66A22FF84D8B001F7B6D /* Supabase in Frameworks */,
-				BBAAAAAAAAAAAAAAAAAAAAE1 /* (null) in Frameworks */,
+				BBAAAAAAAAAAAAAAAAAAAAE1 /* BuildFile in Frameworks */,
 				0AABA64B300007450065F386 /* X509 in Frameworks */,
 				0AABA648300007030065F386 /* SwiftASN1 in Frameworks */,
 			);
@@ -84,6 +104,24 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0A16E191C93A8D5D991FBF0C /* BookProviders */ = {
+			isa = PBXGroup;
+			children = (
+				B8DF35DEAEB6C7E0BD3E3670 /* EdgeFunctionClient.swift */,
+				99A01F7894F3547C32886F40 /* BookSearchModels.swift */,
+				AD087604215D028131FA1A18 /* BookProvider.swift */,
+				54E1278D773D7C7CC3007C77 /* GutendexProvider.swift */,
+				14983BA3F6397E99493D508D /* InternetArchiveProvider.swift */,
+				4AD0B4A3AFF805E3F83A3F52 /* LibraryOfCongressProvider.swift */,
+				DE70A95F3D73B31A291495EC /* HathiTrustProvider.swift */,
+				ACF42C7D13FD38D9D55C12C6 /* GoogleBooksProvider.swift */,
+				860B9B325EA3057D35CEC636 /* EuropeanaProvider.swift */,
+				EBBBF26096202BBB10FD2577 /* BookSearchCoordinator.swift */,
+			);
+			name = BookProviders;
+			path = BookProviders;
+			sourceTree = "<group>";
+		};
 		CC00000000000000000000A1 = {
 			isa = PBXGroup;
 			children = (
@@ -137,6 +175,7 @@
 				AAAAAAAAAAAAAAAAAAAAAAAAD1 /* Config.swift */,
 				AAAAAAAAAAAAAAAAAAAAAAAAD2 /* AuthManager.swift */,
 				AAAAAAAAAAAAAAAAAAAAAAAAD5 /* SyncManager.swift */,
+				0A16E191C93A8D5D991FBF0C /* BookProviders */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -301,6 +340,16 @@
 				BBAAAAAAAAAAAAAAAAAAAAD3 /* AuthView.swift in Sources */,
 				BBAAAAAAAAAAAAAAAAAAAAD4 /* SettingsView.swift in Sources */,
 				BBAAAAAAAAAAAAAAAAAAAAD5 /* SyncManager.swift in Sources */,
+				5696A3A626C60D9491E97FBA /* EdgeFunctionClient.swift in Sources */,
+				8369839BC83B57FAD9D4AAB6 /* BookSearchModels.swift in Sources */,
+				CDB81E94D7BEDEF013CB7AD0 /* BookProvider.swift in Sources */,
+				63CBC09A103E4D9F5F069D74 /* GutendexProvider.swift in Sources */,
+				5603597626C2B089DBEDAA79 /* InternetArchiveProvider.swift in Sources */,
+				1135C0D3A377EBF5C705341A /* LibraryOfCongressProvider.swift in Sources */,
+				25F622E501437EA1D9338281 /* HathiTrustProvider.swift in Sources */,
+				8EF0ED4A860C3ED14FE5DB80 /* GoogleBooksProvider.swift in Sources */,
+				6F8394A0DF0D2DFF753AD3C3 /* EuropeanaProvider.swift in Sources */,
+				8D87B290931C2B3A021D94E9 /* BookSearchCoordinator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

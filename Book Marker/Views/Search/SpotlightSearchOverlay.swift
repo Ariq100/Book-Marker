@@ -207,15 +207,8 @@ struct SpotlightSearchOverlay: View {
     private func performSearch(query: String) async {
         isLoading = true
         errorMessage = nil
-        do {
-            // Call the OpenLibrary service to request data
-            results = try await OpenLibraryService.shared.search(query: query)
-        } catch {
-            // Verify if the error wasn't triggered by search task cancellation
-            guard !Task.isCancelled else { return }
-            errorMessage = "Search failed. Check your connection."
-            results = []
-        }
+        // Fans out to every configured book provider concurrently and merges the results.
+        results = await BookSearchCoordinator.shared.searchAll(query: query)
         isLoading = false
     }
 }

@@ -17,13 +17,17 @@ final class CoverImageCache {
             return Image(uiImage: uiImage)
         }
 
-        // Nothing to download
-        guard let coverID = book.coverID else { return nil }
-
-        // Download
-        guard let data = await OpenLibraryService.shared.downloadCoverData(coverID: coverID, sizeSuffix: size.urlSuffix) else {
-            return nil
+        // Download — prefer a direct cover URL (non-Open-Library providers), falling back to
+        // the legacy Open Library numeric-ID path.
+        let data: Data?
+        if let urlString = book.coverURLString, let url = URL(string: urlString) {
+            data = await OpenLibraryService.shared.downloadCoverData(from: url)
+        } else if let coverID = book.coverID {
+            data = await OpenLibraryService.shared.downloadCoverData(coverID: coverID, sizeSuffix: size.urlSuffix)
+        } else {
+            data = nil
         }
+        guard let data else { return nil }
 
         // Persist to model
         book.coverImageData = data

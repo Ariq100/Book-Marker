@@ -260,7 +260,8 @@ struct AddQuoteView: View {
         guard let book = selectedBook else { return }
         let quote = Quote(
             text: quoteText.trimmingCharacters(in: .whitespacesAndNewlines),
-            bookTitle: book.title
+            bookTitle: book.title,
+            bookID: book.id
         )
         modelContext.insert(quote)
         dismiss()

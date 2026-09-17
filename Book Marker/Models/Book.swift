@@ -27,6 +27,9 @@ final class Book {
     var dateAdded: Date
     /// Locally cached cover image data — avoids repeated network fetches
     var coverImageData: Data?
+    /// Direct cover image URL, used for results from providers other than Open Library
+    /// (which instead addresses covers by the numeric `coverID`). Nil for legacy/OL-only books.
+    var coverURLString: String?
     // MARK: - Sync fields (used by SyncManager)
     /// The UUID of the corresponding row in Supabase. nil means never synced.
     var remoteID: UUID?
@@ -40,6 +43,7 @@ final class Book {
         title: String,
         author: String,
         coverID: Int? = nil,
+        coverURLString: String? = nil,
         olid: String? = nil,
         shelf: Shelf = .bucketList
     ) {
@@ -47,6 +51,7 @@ final class Book {
         self.title = title
         self.author = author
         self.coverID = coverID
+        self.coverURLString = coverURLString
         self.olid = olid
         self.shelf = shelf
         self.dateAdded = Date()
