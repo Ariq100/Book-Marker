@@ -9,5 +9,8 @@ xcuserdata/
 # Supabase CLI local state — may contain local DB credentials/session data.
 supabase/.branches
 supabase/.temp
-.CONVERSATION_CONTEXT.txt
-./CONVERSATION_CONTEXT.txt
+# Local-only docs & context (contain setup details / API key instructions)
+BOOK_API_PROVIDERS.md
+SECRETS_SETUP.md
+SECURITY.md
+CONVERSATION_CONTEXT.txt
