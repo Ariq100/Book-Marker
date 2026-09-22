@@ -12,7 +12,6 @@ struct SpotlightSearchOverlay: View {
     @State private var query = ""
     @State private var results: [BookSearchResult] = []
     @State private var isLoading = false
-    @State private var errorMessage: String?
     
     // Tracks which book has been tapped to show its details sheet.
     @State private var selectedBook: BookSearchResult?
@@ -42,13 +41,15 @@ struct SpotlightSearchOverlay: View {
                 searchBar
                     .padding()
                 
-                // Dynamic content section based on search states
+                // Dynamic content section based on search states.
+                //
+                // Deliberately renders NOTHING when there are no results: neither an error nor a
+                // "no results" panel. Every provider failure already degrades to an empty array
+                // inside BookSearchCoordinator, so "nothing matched" and "every provider is
+                // unreachable" are intentionally indistinguishable here — in both cases the
+                // suggestion dropdown simply doesn't appear.
                 if isLoading {
                     loadingView
-                } else if let error = errorMessage {
-                    errorView(message: error)
-                } else if results.isEmpty && !query.isEmpty {
-                    emptyResultsView
                 } else if !results.isEmpty {
                     resultsList
                 }
@@ -121,32 +122,7 @@ struct SpotlightSearchOverlay: View {
         .frame(maxWidth: .infinity)
     }
 
-    /// Error message container shown if the API request fails.
-    private func errorView(message: String) -> some View {
-        VStack(spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundColor(.orange)
-            Text(message)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .padding()
-        .frame(maxWidth: .infinity)
-    }
 
-    /// Empty results state shown when query does not return any matches.
-    private var emptyResultsView: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "book.closed")
-                .foregroundColor(.secondary.opacity(0.6))
-            Text("No results for \"\(query)\"")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-        }
-        .padding()
-        .frame(maxWidth: .infinity)
-    }
 
     /// Scrollable container showing the lists of books retrieved from Open Library.
     private var resultsList: some View {
@@ -184,7 +160,6 @@ struct SpotlightSearchOverlay: View {
         // Return early if the query is empty or whitespace only
         guard !value.trimmingCharacters(in: .whitespaces).isEmpty else {
             results = []
-            errorMessage = nil
             return
         }
         
@@ -206,7 +181,6 @@ struct SpotlightSearchOverlay: View {
     @MainActor
     private func performSearch(query: String) async {
         isLoading = true
-        errorMessage = nil
         // Fans out to every configured book provider concurrently and merges the results.
         results = await BookSearchCoordinator.shared.searchAll(query: query)
         isLoading = false

@@ -44,7 +44,7 @@
 		BBAAAAAAAAAAAAAAAAAAAAD3 /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAAAAAAAAAAAAAAAAAAAAAAD3 /* AuthView.swift */; };
 		BBAAAAAAAAAAAAAAAAAAAAD4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAAAAAAAAAAAAAAAAAAAAAAD4 /* SettingsView.swift */; };
 		BBAAAAAAAAAAAAAAAAAAAAD5 /* SyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAAAAAAAAAAAAAAAAAAAAAAD5 /* SyncManager.swift */; };
-		BBAAAAAAAAAAAAAAAAAAAAE1 /* BuildFile in Frameworks */ = {isa = PBXBuildFile; };
+		BBAAAAAAAAAAAAAAAAAAAAE1 /* (null) in Frameworks */ = {isa = PBXBuildFile; };
 		CDB81E94D7BEDEF013CB7AD0 /* BookProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD087604215D028131FA1A18 /* BookProvider.swift */; };
 /* End PBXBuildFile section */
 
@@ -95,7 +95,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0A1B66A22FF84D8B001F7B6D /* Supabase in Frameworks */,
-				BBAAAAAAAAAAAAAAAAAAAAE1 /* BuildFile in Frameworks */,
+				BBAAAAAAAAAAAAAAAAAAAAE1 /* (null) in Frameworks */,
 				0AABA64B300007450065F386 /* X509 in Frameworks */,
 				0AABA648300007030065F386 /* SwiftASN1 in Frameworks */,
 			);
@@ -118,7 +118,6 @@
 				860B9B325EA3057D35CEC636 /* EuropeanaProvider.swift */,
 				EBBBF26096202BBB10FD2577 /* BookSearchCoordinator.swift */,
 			);
-			name = BookProviders;
 			path = BookProviders;
 			sourceTree = "<group>";
 		};
@@ -486,8 +485,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Book Marker/Book Marker.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N8UC224DD7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Book Marker/Info.plist";
@@ -511,8 +512,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Book Marker/Book Marker.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N8UC224DD7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Book Marker/Info.plist";

@@ -7,6 +7,8 @@
 import Foundation
 import Observation
 import AuthenticationServices
+import CryptoKit
+import UIKit
 import Supabase
 
 // CONSTRAINT: All password and token values must never be logged via print() or os_log anywhere in this file.
@@ -51,11 +53,18 @@ final class AuthManager: NSObject {
     
     func signInWithApple() async throws {
         do {
-            let idToken = try await performAppleSignIn()
-            
-            // Exchange identity token with Supabase
+            // Apple receives only the SHA-256 hash of this value and echoes that hash back
+            // inside the identity token; Supabase re-hashes the raw value we send it and
+            // compares. A token captured from one sign-in therefore cannot be replayed into
+            // another, because its embedded hash will not match the new request's nonce.
+            let rawNonce = Self.makeRandomNonce()
+            let idToken = try await performAppleSignIn(rawNonce: rawNonce)
+
+            // Exchange identity token with Supabase. The raw nonce must be sent alongside it —
+            // Supabase hashes this value and checks it against the `nonce` claim Apple embedded
+            // in the token. Omitting it leaves the exchange open to identity-token replay.
             try await client.auth.signInWithIdToken(
-                credentials: .init(provider: .apple, idToken: idToken)
+                credentials: .init(provider: .apple, idToken: idToken, nonce: rawNonce)
             )
         } catch AuthManagerError.appleSignInCanceled {
             // Return silently without throwing
@@ -64,18 +73,40 @@ final class AuthManager: NSObject {
             throw error
         }
     }
-    
+
+    /// A cryptographically random, URL-safe nonce. `SystemRandomNumberGenerator` is seeded by
+    /// the OS CSPRNG — `Int.random(in:)` or `arc4random` would not be an acceptable substitute
+    /// for a value whose whole purpose is unpredictability.
+    private static func makeRandomNonce(length: Int = 32) -> String {
+        let charset = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
+        var generator = SystemRandomNumberGenerator()
+        return String((0..<length).map { _ in charset[Int(generator.next(upperBound: UInt64(charset.count)))] })
+    }
+
+    private static func sha256(_ input: String) -> String {
+        SHA256.hash(data: Data(input.utf8))
+            .map { String(format: "%02x", $0) }
+            .joined()
+    }
+
     @MainActor
-    private func performAppleSignIn() async throws -> String {
+    private func performAppleSignIn(rawNonce: String) async throws -> String {
         return try await withCheckedThrowingContinuation { continuation in
             self.appleSignInContinuation = continuation
-            
+
             let provider = ASAuthorizationAppleIDProvider()
             let request = provider.createRequest()
             request.requestedScopes = [.fullName, .email]
-            
+            // Apple only ever sees the hash; the raw value stays on-device until it is sent
+            // directly to Supabase.
+            request.nonce = Self.sha256(rawNonce)
+
             let controller = ASAuthorizationController(authorizationRequests: [request])
             controller.delegate = self
+            // Without a presentation context provider ASAuthorizationController has no window to
+            // attach its sheet to and fails with a bare AuthorizationError 1000 — one of the two
+            // ways this flow previously surfaced as "Something went wrong, please try again."
+            controller.presentationContextProvider = self
             controller.performRequests()
         }
     }
@@ -147,6 +178,16 @@ extension AuthManager: ASAuthorizationControllerDelegate {
             appleSignInContinuation?.resume(throwing: error)
         }
         appleSignInContinuation = nil
+    }
+}
+
+extension AuthManager: ASAuthorizationControllerPresentationContextProviding {
+    func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        let scene = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive }
+            ?? UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+        return scene?.keyWindow ?? scene?.windows.first ?? ASPresentationAnchor()
     }
 }
 

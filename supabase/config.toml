@@ -4,3 +4,17 @@ project_id = "book-marker"
 
 # All three functions authenticate the caller with a normal user JWT, so the platform-level
 # verify_jwt check can stay at its default (true) — no [functions.*] overrides are needed.
+
+# Sign in with Apple.
+#
+# AuthManager.signInWithApple() uses the NATIVE flow: ASAuthorizationAppleIDProvider produces an
+# identity token on-device, which is handed to Supabase via auth.signInWithIdToken(). Supabase
+# verifies that token's `aud` claim against the client_id list below — and for a native iOS
+# sign-in `aud` is the app's BUNDLE ID, not an Apple Services ID.
+#
+# That is why no Services ID / Team ID / Key ID / .p8 secret appears here: those, and the
+# .../auth/v1/callback redirect URL, belong to the WEB OAuth flow (signInWithOAuth), which this
+# app never uses. Add them only if a web or Android client is introduced later.
+[auth.external.apple]
+enabled = true
+client_id = "com.bookmarker.app"

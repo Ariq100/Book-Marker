@@ -194,11 +194,30 @@ struct AuthView: View {
     }
     
     private func handleError(_ error: Error) {
+        // The underlying error is deliberately never shown to end users (it can carry server
+        // internals), but without it in the console every failure looks identical during
+        // development — which is exactly how a missing Sign in with Apple entitlement and a
+        // disabled Supabase provider both end up as "Something went wrong, please try again."
+        #if DEBUG
+        print("[AuthView] auth failed: \(error)")
+        #endif
+
         let errorString = String(describing: error).lowercased()
         if errorString.contains("invalid login credentials") || errorString.contains("invalid_credentials") {
             errorMessage = "Invalid email or password. Please try again."
         } else if errorString.contains("user already registered") {
             errorMessage = "An account with this email already exists."
+        } else if errorString.contains("email not confirmed") || errorString.contains("email_not_confirmed") {
+            errorMessage = "Please confirm your email first — check your inbox for the confirmation link."
+        } else if errorString.contains("over_email_send_rate_limit") || errorString.contains("rate limit") {
+            errorMessage = "Too many attempts. Please wait a few minutes and try again."
+        } else if errorString.contains("unsupported provider") || errorString.contains("provider is not enabled") {
+            // Supabase returns this when the Apple provider is disabled for the project.
+            errorMessage = "Sign in with Apple isn't available right now. Please use email and password."
+        } else if errorString.contains("authorizationerror") || errorString.contains("com.apple.authenticationservices") {
+            // ASAuthorizationController failed before Supabase was ever reached — almost always
+            // a missing "Sign in with Apple" capability on the target, or an unsigned build.
+            errorMessage = "Sign in with Apple isn't available on this build. Please use email and password."
         } else {
             // Generic error message for end users
             errorMessage = "Something went wrong, please try again."
