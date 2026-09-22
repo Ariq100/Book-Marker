@@ -1,6 +1,0 @@
-# Supabase CLI project config. Run `supabase link --project-ref <your-project-ref>` once
-# before deploying migrations/functions — see SECRETS_SETUP.md for the full walkthrough.
-project_id = "book-marker"
-
-# All three functions authenticate the caller with a normal user JWT, so the platform-level
-# verify_jwt check can stay at its default (true) — no [functions.*] overrides are needed.
