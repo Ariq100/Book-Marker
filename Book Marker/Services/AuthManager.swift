@@ -23,7 +23,23 @@ final class AuthManager: NSObject {
     var isAuthenticated: Bool {
         currentUser != nil
     }
-    
+
+    /// True until the stored session has been read back from the Keychain at launch.
+    ///
+    /// supabase-swift persists the session itself and restores it asynchronously, emitting
+    /// `.initialSession` when it is done. Until that arrives `currentUser` is nil — which is
+    /// indistinguishable from "signed out". Without this flag ContentView renders AuthView for
+    /// those first few frames, so a returning user sees the login screen flash before being
+    /// dropped into the app, and a user who taps quickly can start signing in again
+    /// unnecessarily. Views should show a neutral splash while this is true rather than
+    /// treating it as signed out.
+    private(set) var isRestoringSession = true
+
+    /// Upper bound on how long the splash may stay up. If the auth client never emits an
+    /// initial session (offline Keychain read failure, for instance), fall through to the
+    /// sign-in screen rather than trapping the user on a spinner forever.
+    private static let sessionRestoreTimeout: Duration = .seconds(5)
+
     private var authStateTask: Task<Void, Never>?
     private var appleSignInContinuation: CheckedContinuation<String, Error>?
     
@@ -35,13 +51,28 @@ final class AuthManager: NSObject {
         )
         super.init()
         
-        // Listen for Supabase auth state changes
-        authStateTask = Task {
+        // Listen for Supabase auth state changes.
+        //
+        // This stream is also what restores a persisted login: supabase-swift keeps the session
+        // in the Keychain and refreshes the access token in the background, then replays it here
+        // as `.initialSession` on launch. No manual "restore" call is needed — but the app must
+        // wait for that event before deciding the user is signed out.
+        authStateTask = Task { [weak self] in
+            guard let self else { return }
             for await state in client.auth.authStateChanges {
                 await MainActor.run {
                     self.currentUser = state.session?.user
+                    // Any event means the auth client has finished initializing; `.initialSession`
+                    // is simply the one that arrives first on a cold launch.
+                    self.isRestoringSession = false
                 }
             }
+        }
+
+        // Failsafe: never leave the splash up indefinitely if the stream stays silent.
+        Task { [weak self] in
+            try? await Task.sleep(for: Self.sessionRestoreTimeout)
+            await MainActor.run { self?.isRestoringSession = false }
         }
     }
     

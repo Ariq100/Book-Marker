@@ -6,12 +6,28 @@ struct ContentView: View {
     
     var body: some View {
         Group {
-            if authManager.isAuthenticated {
+            if authManager.isRestoringSession {
+                // A persisted session is still being read back from the Keychain. Showing
+                // AuthView here would flash the login screen at every returning user.
+                launchPlaceholder
+            } else if authManager.isAuthenticated {
                 mainTabView
             } else {
                 AuthView()
             }
         }
+        .animation(.easeInOut(duration: 0.2), value: authManager.isRestoringSession)
+    }
+
+    private var launchPlaceholder: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "books.vertical.fill")
+                .font(.system(size: 48))
+                .foregroundStyle(.indigo)
+            ProgressView()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemBackground))
     }
     
     private var mainTabView: some View {
