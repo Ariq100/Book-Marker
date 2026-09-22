@@ -25,6 +25,14 @@ actor BookSearchCoordinator {
 
     /// Searches all providers concurrently and returns one deduplicated result per edition,
     /// in a stable, sensible display order.
+    /// How long any single provider gets before the search moves on without it.
+    ///
+    /// `ProviderSession`'s 8s URL timeout is the backstop for a genuinely hung socket; this
+    /// shorter deadline is the interactive budget. Search-as-you-type is worthless if it takes
+    /// longer than the user's patience, and a provider that is merely slow is indistinguishable
+    /// from one that is down as far as the dropdown is concerned.
+    private static let providerDeadline: TimeInterval = 5
+
     func searchAll(query: String) async -> [BookSearchResult] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
@@ -32,7 +40,9 @@ actor BookSearchCoordinator {
         let allResults = await withTaskGroup(of: [BookSearchResult].self) { group in
             for provider in providers where provider.isAvailable {
                 group.addTask {
-                    (try? await provider.searchBooks(query: trimmed)) ?? []
+                    await Self.withDeadline(seconds: Self.providerDeadline, fallback: []) {
+                        (try? await provider.searchBooks(query: trimmed)) ?? []
+                    }
                 }
             }
             var combined: [BookSearchResult] = []
@@ -45,12 +55,38 @@ actor BookSearchCoordinator {
         return deduplicate(allResults)
     }
 
+    /// Runs `work`, giving up and returning `fallback` if it hasn't produced a value within
+    /// `seconds`. Losing task is cancelled rather than left running.
+    private static func withDeadline<T: Sendable>(
+        seconds: TimeInterval,
+        fallback: T,
+        _ work: @escaping @Sendable () async -> T
+    ) async -> T {
+        await withTaskGroup(of: Optional<T>.self) { group in
+            group.addTask { await work() }
+            group.addTask {
+                try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                return nil  // nil distinguishes "deadline fired" from a real result
+            }
+            // Whichever finishes first decides; the other is cancelled immediately.
+            for await first in group {
+                group.cancelAll()
+                return first ?? fallback
+            }
+            return fallback
+        }
+    }
+
     /// ISBN-13/ISBN-10 lookup across all providers concurrently; returns the first confirmed
     /// match, preferring an ISBN-13 hit.
     func findBook(isbn: String) async -> BookSearchResult? {
         await withTaskGroup(of: BookSearchResult?.self) { group in
             for provider in providers where provider.isAvailable {
-                group.addTask { (try? await provider.findBook(isbn: isbn)) ?? nil }
+                group.addTask {
+                    await Self.withDeadline(seconds: Self.providerDeadline, fallback: nil) {
+                        (try? await provider.findBook(isbn: isbn)) ?? nil
+                    }
+                }
             }
             for await result in group {
                 if let result { return result }

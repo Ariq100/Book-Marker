@@ -31,7 +31,7 @@ enum EdgeFunctionClient {
         request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue(SupabaseConfig.anonKey, forHTTPHeaderField: "apikey")
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await ProviderSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw ClientError.invalidResponse }
 
         guard (200...299).contains(http.statusCode) else {

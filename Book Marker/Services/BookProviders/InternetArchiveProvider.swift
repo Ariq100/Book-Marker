@@ -97,7 +97,7 @@ final class InternetArchiveProvider: BookProvider {
         guard let url = URL(string: "https://archive.org/advancedsearch.php?q=\(encoded)&fl[]=identifier&fl[]=title&fl[]=creator&fl[]=year&fl[]=publisher&fl[]=isbn&fl[]=language&rows=20&output=json")
         else { return [] }
 
-        let (data, _) = try await URLSession.shared.data(for: makeRequest(url))
+        let (data, _) = try await ProviderSession.shared.data(for: makeRequest(url))
         let decoded = try JSONDecoder().decode(SearchResponse.self, from: data)
 
         return decoded.response.docs.map { doc in
@@ -134,7 +134,7 @@ final class InternetArchiveProvider: BookProvider {
     /// accessible. This is the only place `.fullTextAvailable` is ever set for this provider.
     func bookDetails(providerID: String) async throws -> BookSearchResult? {
         guard let url = URL(string: "https://archive.org/metadata/\(providerID)") else { return nil }
-        let (data, _) = try await URLSession.shared.data(for: makeRequest(url))
+        let (data, _) = try await ProviderSession.shared.data(for: makeRequest(url))
         let decoded = try JSONDecoder().decode(MetadataResponse.self, from: data)
 
         let isRestricted = decoded.metadata?.accessRestrictedItem == "true"

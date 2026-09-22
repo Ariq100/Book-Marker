@@ -19,6 +19,7 @@
 		8369839BC83B57FAD9D4AAB6 /* BookSearchModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99A01F7894F3547C32886F40 /* BookSearchModels.swift */; };
 		8D87B290931C2B3A021D94E9 /* BookSearchCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBBBF26096202BBB10FD2577 /* BookSearchCoordinator.swift */; };
 		8EF0ED4A860C3ED14FE5DB80 /* GoogleBooksProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACF42C7D13FD38D9D55C12C6 /* GoogleBooksProvider.swift */; };
+		AA01B00000000000000002 /* ProviderSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01B00000000000000001 /* ProviderSession.swift */; };
 		BB00000000000000000000A1 /* BookMarkerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000A1 /* BookMarkerApp.swift */; };
 		BB00000000000000000000A2 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000A2 /* ContentView.swift */; };
 		BB00000000000000000000A3 /* Book.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000A3 /* Book.swift */; };
@@ -76,6 +77,7 @@
 		AA00000000000000000000C2 /* CoverImageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoverImageCache.swift; sourceTree = "<group>"; };
 		AA00000000000000000000C3 /* SpotlightSearchOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotlightSearchOverlay.swift; sourceTree = "<group>"; };
 		AA00000000000000000000C5 /* Todo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Todo.swift; sourceTree = "<group>"; };
+		AA01B00000000000000001 /* ProviderSession.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProviderSession.swift; sourceTree = "<group>"; };
 		AAAAAAAAAAAAAAAAAAAAAAAAD1 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		AAAAAAAAAAAAAAAAAAAAAAAAD2 /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
 		AAAAAAAAAAAAAAAAAAAAAAAAD3 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
@@ -117,6 +119,7 @@
 				ACF42C7D13FD38D9D55C12C6 /* GoogleBooksProvider.swift */,
 				860B9B325EA3057D35CEC636 /* EuropeanaProvider.swift */,
 				EBBBF26096202BBB10FD2577 /* BookSearchCoordinator.swift */,
+				AA01B00000000000000001 /* ProviderSession.swift */,
 			);
 			path = BookProviders;
 			sourceTree = "<group>";
@@ -269,7 +272,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1500;
-				LastUpgradeCheck = 1500;
+				LastUpgradeCheck = 2640;
 				TargetAttributes = {
 					DD00000000000000000000A1 = {
 						CreatedOnToolsVersion = 15.0;
@@ -349,6 +352,7 @@
 				8EF0ED4A860C3ED14FE5DB80 /* GoogleBooksProvider.swift in Sources */,
 				6F8394A0DF0D2DFF753AD3C3 /* EuropeanaProvider.swift in Sources */,
 				8D87B290931C2B3A021D94E9 /* BookSearchCoordinator.swift in Sources */,
+				AA01B00000000000000002 /* ProviderSession.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -391,6 +395,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = N8UC224DD7;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -413,6 +418,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPABASE_ANON_KEY = "$(SUPABASE_ANON_KEY)";
 				SUPABASE_URL = "$(SUPABASE_URL)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
@@ -456,6 +462,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = N8UC224DD7;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -471,6 +478,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPABASE_ANON_KEY = "$(SUPABASE_ANON_KEY)";
 				SUPABASE_URL = "$(SUPABASE_URL)";
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -488,7 +496,6 @@
 				CODE_SIGN_ENTITLEMENTS = "Book Marker/Book Marker.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = N8UC224DD7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Book Marker/Info.plist";
@@ -515,7 +522,6 @@
 				CODE_SIGN_ENTITLEMENTS = "Book Marker/Book Marker.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = N8UC224DD7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Book Marker/Info.plist";

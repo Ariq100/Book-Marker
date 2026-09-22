@@ -60,8 +60,11 @@ struct AddQuoteView: View {
                 if readingBooks.isEmpty {
                     isShowingEmptyAlert = true
                 } else {
-                    // Prewarm cache for reading books
-                    BookContentService.shared.prewarm(books: readingBooks)
+                    // Prewarm cache for reading books. Snapshot the SwiftData models into
+                    // plain Sendable values here on the main actor — handing @Model objects to
+                    // the actor is what tripped the concurrency checker.
+                    let refs = readingBooks.map(BookContentService.BookRef.init)
+                    Task { await BookContentService.shared.prewarm(books: refs) }
                 }
             }
             .alert("Reading List Empty", isPresented: $isShowingEmptyAlert) {
@@ -234,22 +237,26 @@ struct AddQuoteView: View {
 
     // MARK: - Logic
 
+    @MainActor
     private func updateSuggestions(for text: String) {
         guard let book = selectedBook else { return }
         fetchTask?.cancel()
-        
+
         guard text.count >= 3 else {
             suggestions = []
             return
         }
-        
-        fetchTask = Task {
+
+        // Snapshot on the main actor, before the task hops off it.
+        let ref = BookContentService.BookRef(book)
+
+        fetchTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 300_000_000) // 300ms debounce
             guard !Task.isCancelled else { return }
-            
-            let results = await BookContentService.shared.suggestions(for: book, matching: text)
+
+            let results = await BookContentService.shared.suggestions(for: ref, matching: text)
             guard !Task.isCancelled else { return }
-            
+
             withAnimation(.easeInOut(duration: 0.2)) {
                 suggestions = results
             }

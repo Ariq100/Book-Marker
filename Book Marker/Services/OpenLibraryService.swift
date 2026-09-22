@@ -64,7 +64,7 @@ final class OpenLibraryService: BookProvider {
               let url = URL(string: "https://openlibrary.org/api/books?bibkeys=ISBN:\(cleaned)&format=json&jscmd=data")
         else { return nil }
 
-        let (data, _) = try await URLSession.shared.data(for: makeRequest(url))
+        let (data, _) = try await ProviderSession.shared.data(for: makeRequest(url))
         let decoded = try JSONDecoder().decode([String: ISBNLookupResponse.BookRecord].self, from: data)
         guard let record = decoded["ISBN:\(cleaned)"] else { return nil }
 
@@ -110,7 +110,7 @@ final class OpenLibraryService: BookProvider {
         guard let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else { return [] }
 
         guard let metadataURL = URL(string: "https://archive.org/metadata/\(providerID)"),
-              let (metadataData, _) = try? await URLSession.shared.data(for: makeRequest(metadataURL)),
+              let (metadataData, _) = try? await ProviderSession.shared.data(for: makeRequest(metadataURL)),
               let metadata = try? JSONSerialization.jsonObject(with: metadataData) as? [String: Any],
               let server = metadata["server"] as? String,
               let dir = metadata["dir"] as? String
@@ -119,7 +119,7 @@ final class OpenLibraryService: BookProvider {
         guard let url = URL(string: "https://\(server)/fulltext/inside.php?item_id=\(providerID)&doc=\(providerID)&path=\(dir)&q=\(encodedQuery)")
         else { return [] }
 
-        guard let (data, response) = try? await URLSession.shared.data(for: makeRequest(url)),
+        guard let (data, response) = try? await ProviderSession.shared.data(for: makeRequest(url)),
               let http = response as? HTTPURLResponse, http.statusCode == 200,
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let matches = json["matches"] as? [[String: Any]]
@@ -138,7 +138,7 @@ final class OpenLibraryService: BookProvider {
               let url = URL(string: "https://openlibrary.org/search.json?q=\(encoded)&limit=20")
         else { return [] }
 
-        let (data, _) = try await URLSession.shared.data(for: makeRequest(url))
+        let (data, _) = try await ProviderSession.shared.data(for: makeRequest(url))
         let response = try JSONDecoder().decode(SearchResponse.self, from: data)
 
         return response.docs.map { doc in
@@ -176,12 +176,12 @@ final class OpenLibraryService: BookProvider {
         guard let url = URL(string: "https://covers.openlibrary.org/b/id/\(coverID)-\(sizeSuffix).jpg") else {
             return nil
         }
-        return try? await URLSession.shared.data(for: makeRequest(url)).0
+        return try? await ProviderSession.shared.data(for: makeRequest(url)).0
     }
 
     /// Downloads cover image data from an arbitrary cover URL (used for non-Open-Library
     /// providers, whose results carry a direct image URL rather than a numeric cover ID).
     func downloadCoverData(from url: URL) async -> Data? {
-        try? await URLSession.shared.data(for: makeRequest(url)).0
+        try? await ProviderSession.shared.data(for: makeRequest(url)).0
     }
 }

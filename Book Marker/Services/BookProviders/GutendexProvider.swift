@@ -36,7 +36,7 @@ final class GutendexProvider: BookProvider {
               let url = URL(string: "https://gutendex.com/books?search=\(encoded)")
         else { return [] }
 
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, _) = try await ProviderSession.shared.data(from: url)
         let decoded = try JSONDecoder().decode(SearchResponse.self, from: data)
 
         return decoded.results.map { book in
@@ -77,13 +77,13 @@ final class GutendexProvider: BookProvider {
     /// format exists — this is legitimate public-domain content, not a copyright workaround.
     func fullText(providerID: String) async throws -> String? {
         guard let url = URL(string: "https://gutendex.com/books/\(providerID)") else { return nil }
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, _) = try await ProviderSession.shared.data(from: url)
         guard let book = try? JSONDecoder().decode(SearchResponse.Book.self, from: data),
               let textURLString = book.formats.first(where: { $0.key.hasPrefix("text/plain") })?.value,
               let textURL = URL(string: textURLString)
         else { return nil }
 
-        let (textData, _) = try await URLSession.shared.data(from: textURL)
+        let (textData, _) = try await ProviderSession.shared.data(from: textURL)
         return String(data: textData, encoding: .utf8)
     }
 }

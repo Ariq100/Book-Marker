@@ -36,7 +36,7 @@ final class LibraryOfCongressProvider: BookProvider {
         var request = URLRequest(url: url)
         request.setValue("BookMarker-iOS/1.0", forHTTPHeaderField: "User-Agent")
 
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let (data, _) = try await ProviderSession.shared.data(for: request)
         let decoded = try JSONDecoder().decode(SearchResponse.self, from: data)
 
         return decoded.results.compactMap { item in

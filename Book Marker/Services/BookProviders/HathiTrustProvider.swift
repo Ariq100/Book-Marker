@@ -27,7 +27,7 @@ final class HathiTrustProvider: BookProvider {
               let url = URL(string: "https://catalog.hathitrust.org/api/volumes/brief/json/isbn:\(cleaned)")
         else { return nil }
 
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, _) = try await ProviderSession.shared.data(from: url)
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let records = json["records"] as? [String: Any],
               let firstRecord = records.values.first as? [String: Any],
