@@ -5,6 +5,22 @@ project_id = "book-marker"
 # All three functions authenticate the caller with a normal user JWT, so the platform-level
 # verify_jwt check can stay at its default (true) — no [functions.*] overrides are needed.
 
+# Password and sign-up policy. Mirrors PasswordPolicy.swift — the app checks these for instant
+# feedback, but THIS is the real enforcement point, since anyone can call the Auth API directly.
+#
+# NOTE: these values apply to the local dev stack. For the hosted project, set the same values in
+# Dashboard → Authentication → Providers → Email / Policies (a blanket `supabase config push`
+# would also overwrite every other [auth] default, e.g. site_url).
+[auth]
+minimum_password_length = 10
+password_requirements = "lower_upper_letters_digits_symbols"
+
+[auth.email]
+# Without confirmation anyone can register an account under someone else's email address.
+enable_confirmations = true
+# Changing the password requires a recent login (reauthentication nonce).
+secure_password_change = true
+
 # Sign in with Apple.
 #
 # AuthManager.signInWithApple() uses the NATIVE flow: ASAuthorizationAppleIDProvider produces an

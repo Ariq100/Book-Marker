@@ -13,6 +13,7 @@ struct SettingsView: View {
     @State private var isProcessing = false
     @State private var errorMessage: String? = nil
     @State private var showErrorAlert = false
+    @State private var showUnsyncedWarning = false
     
     var body: some View {
         Form {
@@ -69,6 +70,14 @@ struct SettingsView: View {
             }
             Button("Cancel", role: .cancel) { }
         }
+        .alert("Unsynced Changes", isPresented: $showUnsyncedWarning) {
+            Button("Sign Out Anyway", role: .destructive) {
+                handleSignOut(force: true)
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Some of your books, quotes or words haven't been saved to your account yet — check your connection. Signing out now will remove them from this device.")
+        }
         .alert("Delete Account", isPresented: $showDeleteAccountConfirmation) {
             TextField("Type DELETE to confirm", text: $deleteConfirmationText)
                 .autocapitalization(.allCharacters)
@@ -89,11 +98,20 @@ struct SettingsView: View {
         }
     }
     
-    private func handleSignOut() {
+    private func handleSignOut(force: Bool = false) {
         isProcessing = true
         Task {
+            // Push anything still pending while the session is valid; signing out wipes the
+            // local store so the next account on this device can't see this one's data.
+            await SyncManager.shared.syncNow()
+            if !force && SyncManager.shared.hasUnsyncedChanges() {
+                isProcessing = false
+                showUnsyncedWarning = true
+                return
+            }
             do {
                 try await AuthManager.shared.signOut()
+                SyncManager.shared.resetLocalData()
             } catch {
                 errorMessage = error.localizedDescription
                 showErrorAlert = true
@@ -107,6 +125,7 @@ struct SettingsView: View {
         Task {
             do {
                 try await AuthManager.shared.deleteAccount()
+                SyncManager.shared.resetLocalData()
             } catch {
                 errorMessage = error.localizedDescription
                 showErrorAlert = true

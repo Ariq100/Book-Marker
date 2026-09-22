@@ -100,7 +100,7 @@ struct VocabView: View {
                     .listRowSeparatorTint(Color(.systemGray5))
             }
             .onDelete { indexSet in
-                indexSet.forEach { modelContext.delete(allWords[$0]) }
+                indexSet.forEach { modelContext.deleteSynced(allWords[$0]) }
             }
         }
         .listStyle(.plain)

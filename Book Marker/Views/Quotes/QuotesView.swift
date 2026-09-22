@@ -100,7 +100,7 @@ struct QuotesView: View {
                     .listRowSeparatorTint(Color(.systemGray5))
             }
             .onDelete { indexSet in
-                indexSet.forEach { modelContext.delete(allQuotes[$0]) }
+                indexSet.forEach { modelContext.deleteSynced(allQuotes[$0]) }
             }
         }
         .listStyle(.plain)

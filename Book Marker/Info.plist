@@ -18,14 +18,18 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Book Marker uses the camera to photograph a page so you can highlight and save a quote from it.</string>
 	<key>NSHumanReadableDescription</key>
 	<string>Book Marker</string>
-	<key>SupabaseProjectRef</key>
-	<string>$(SUPABASE_PROJECT_REF)</string>
 	<key>SupabaseAnonKey</key>
 	<string>$(SUPABASE_ANON_KEY)</string>
+	<key>SupabaseProjectRef</key>
+	<string>$(SUPABASE_PROJECT_REF)</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

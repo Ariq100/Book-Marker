@@ -25,6 +25,16 @@ struct AuthView: View {
             ZStack {
                 Form {
                     Section {
+                        VStack(spacing: 12) {
+                            AppLogo(size: 88)
+                            Text("Book Marker")
+                                .font(.title2.weight(.bold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .listRowBackground(Color.clear)
+                    }
+
+                    Section {
                         SignInWithAppleButton(
                             .signIn,
                             onRequest: { request in
@@ -60,7 +70,7 @@ struct AuthView: View {
                             .textContentType(.emailAddress)
                             .keyboardType(.emailAddress)
                             .autocapitalization(.none)
-                            .onChange(of: email) { _ in validateEmail() }
+                            .onChange(of: email) { validateEmail() }
                         
                         if let emailError {
                             Text(emailError)
@@ -70,9 +80,11 @@ struct AuthView: View {
                         
                         SecureField("Password", text: $password)
                             .textContentType(isSignUp ? .newPassword : .password)
-                            .onChange(of: password) { _ in validatePassword() }
+                            .onChange(of: password) { validatePassword() }
                         
-                        if let passwordError {
+                        if isSignUp && !password.isEmpty {
+                            passwordChecklist
+                        } else if let passwordError {
                             Text(passwordError)
                                 .font(.caption)
                                 .foregroundColor(.red)
@@ -122,6 +134,17 @@ struct AuthView: View {
         }
     }
     
+    private var passwordChecklist: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(PasswordPolicy.requirements(for: password, email: email)) { requirement in
+                Label(requirement.label, systemImage: requirement.isMet ? "checkmark.circle.fill" : "circle")
+                    .font(.caption)
+                    .foregroundColor(requirement.isMet ? .green : .secondary)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
     // MARK: - Validation
     
     private var isFormValid: Bool {
@@ -149,8 +172,10 @@ struct AuthView: View {
             if updateUI { passwordError = "Password is required" }
             return false
         }
-        if password.count < 8 {
-            if updateUI { passwordError = "Password must be at least 8 characters" }
+        // Existing accounts may predate the current rules, so only new passwords are checked
+        // against the policy; signing in just needs a non-empty password.
+        if isSignUp && !PasswordPolicy.isValid(password, email: email) {
+            if updateUI { passwordError = "Password doesn't meet the requirements" }
             return false
         }
         if updateUI { passwordError = nil }
@@ -205,6 +230,9 @@ struct AuthView: View {
         let errorString = String(describing: error).lowercased()
         if errorString.contains("invalid login credentials") || errorString.contains("invalid_credentials") {
             errorMessage = "Invalid email or password. Please try again."
+        } else if errorString.contains("weak_password") || errorString.contains("password should") || errorString.contains("pwned") {
+            // Server-side policy (config.toml) rejected it — e.g. found in a known data breach.
+            errorMessage = "That password is too weak or has appeared in a data breach. Please choose a different one."
         } else if errorString.contains("user already registered") {
             errorMessage = "An account with this email already exists."
         } else if errorString.contains("email not confirmed") || errorString.contains("email_not_confirmed") {

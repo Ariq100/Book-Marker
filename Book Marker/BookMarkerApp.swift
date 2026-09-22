@@ -6,7 +6,7 @@ struct BookMarkerApp: App {
     let container: ModelContainer
 
     init() {
-        let schema = Schema([Book.self, Quote.self, VocabWord.self])
+        let schema = Schema([Book.self, Quote.self, VocabWord.self, PendingDeletion.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
         do {

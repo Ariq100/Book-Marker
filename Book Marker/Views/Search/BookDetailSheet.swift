@@ -165,6 +165,7 @@ struct BookDetailSheet: View {
             shelf: selectedShelf
         )
         modelContext.insert(book)
+        try? modelContext.save()
         saved = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
             dismiss()

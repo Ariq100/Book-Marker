@@ -182,6 +182,7 @@ struct AddWordView: View {
             definition: definition.trimmingCharacters(in: .whitespacesAndNewlines)
         )
         modelContext.insert(vocab)
+        try? modelContext.save()
         dismiss()
     }
 }

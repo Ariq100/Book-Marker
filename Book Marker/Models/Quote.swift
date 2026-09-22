@@ -37,4 +37,11 @@ final class Quote {
         self.needsSync = true
         self.updatedAt = Date()
     }
+
+    /// Call after editing any synced field so SyncManager pushes the change and last-write-wins
+    /// resolution sees this edit as the newest version.
+    func markDirty() {
+        needsSync = true
+        updatedAt = Date()
+    }
 }

@@ -99,9 +99,9 @@ struct LibraryView: View {
             LazyVGrid(columns: columns, spacing: 20) {
                 ForEach(booksOnShelf) { book in
                     BookGridCell(book: book, onMove: { newShelf in
-                        withAnimation { book.shelf = newShelf }
+                        withAnimation { book.shelf = newShelf; book.markDirty() }
                     }, onDelete: {
-                        withAnimation { modelContext.delete(book) }
+                        withAnimation { modelContext.deleteSynced(book) }
                     })
                 }
             }

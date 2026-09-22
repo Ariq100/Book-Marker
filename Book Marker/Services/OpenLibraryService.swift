@@ -2,8 +2,7 @@ import Foundation
 
 /// Open Library (https://openlibrary.org/developers/api) — no API key required for the public
 /// endpoints used here. Per Open Library's usage guidelines we identify the app with a
-/// descriptive User-Agent and avoid bulk/aggressive requests; results that power the quote
-/// autocomplete dropdown (`BookContentService`) are cached in-memory per session.
+/// descriptive User-Agent and avoid bulk/aggressive requests.
 final class OpenLibraryService: BookProvider {
     static let shared = OpenLibraryService()
     private init() {}
