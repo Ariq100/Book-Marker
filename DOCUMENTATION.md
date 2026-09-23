@@ -25,6 +25,8 @@ accounts and cloud storage come from Supabase.
 12. [The Supabase backend](#12-the-supabase-backend)
 13. [Configuration and secrets](#13-configuration-and-secrets)
 14. [Dead code and known gaps](#14-dead-code-and-known-gaps)
+15. [Privacy policy website](#15-privacy-policy-website)
+16. [Supabase keep-alive](#16-supabase-keep-alive)
 
 ---
 
@@ -134,7 +136,12 @@ to, and without it the flow fails with a bare `AuthorizationError 1000`.
 **`signOut()`** — calls Supabase, which clears the Keychain-stored session. The app deliberately
 does **not** implement a second manual Keychain layer on top.
 
-**`deleteAccount()`** — invokes the `delete-account` Edge Function, then signs out locally.
+**`deleteAccount()`** — invokes the `delete-account` Edge Function, which erases every row the
+user owns and then the auth user itself. It then clears the session with a **local-scope**
+sign-out, because the server-side sessions died with the account and a global sign-out would only
+fail against a user that no longer exists. That final step is `try?`: a local sign-out hiccup must
+never turn a completed deletion into an error alert. If the function itself fails, nothing is
+signed out and the user can retry.
 
 **Why an Edge Function rather than a direct call:** deleting a row from `auth.users` requires the
 `service_role` key, which bypasses RLS entirely. That key must never ship inside a client app.
@@ -173,7 +180,13 @@ the control that actually does something are different views.
 
 Sign out and delete account, each wrapping the corresponding `AuthManager` call with an
 `isProcessing` flag and an error alert. Account deletion is destructive and irreversible, so it
-is confirmation-gated in the UI.
+is confirmation-gated in the UI (the user must type `DELETE`), and the copy states exactly what is
+erased: the account plus all books, quotes and words, on the server and on the device. After a
+successful deletion `SyncManager.resetLocalData()` wipes the local SwiftData store, the owner
+marker in `UserDefaults`, and `URLCache.shared` (cached search and dictionary responses).
+
+The **Privacy Policy** link points at the GitHub Pages site (§15):
+`https://ariq100.github.io/Book-Marker/privacy/`.
 
 ---
 
@@ -539,6 +552,9 @@ derived from them.
 | `0001_enable_rls_and_ownership_policies.sql` | Enables and forces RLS, adds ownership policies |
 | `0002_book_association_and_cover_url.sql` | Adds `cover_url`, `book_id`, `page_number`, `note` |
 | `0003_least_privilege_grants.sql` | Strips `anon` grants, grants `authenticated` exactly CRUD |
+| `0004_quote_extraction_rate_limit.sql` | `quote_extractions` usage ledger for the `extract-quote` rate limit |
+| `0005_text_length_limits.sql` | Length caps on every user-writable text column |
+| `0006_keepalive_rpc.sql` | Harmless `keepalive()` RPC pinged by the keep-alive job (§16) |
 
 **The threat model `0001` defends against:** the app ships a publishable key, which is extractable
 from the binary and is *designed* to be public. Anyone holding it can send arbitrary requests to
@@ -558,11 +574,22 @@ unauthenticated requests never even reach the policy layer.
 - **`search-google-books`** / **`search-europeana`** — hold the API keys server-side, require an
   authenticated user, cap query length, call one fixed upstream endpoint, and never forward the
   upstream's raw error body.
-- **`delete-account`** — the only privileged operation, using `service_role` server-side.
+- **`extract-quote`** — sends a highlighted page photo to Gemini and returns the text. The photo
+  is never stored; each call is logged in `quote_extractions` for per-user rate limits.
+- **`delete-account`** — the only privileged operation, using `service_role` server-side. It
+  deletes the caller's rows from `quotes`, `vocab_words`, `books` and `quote_extractions`
+  explicitly, then deletes the `auth.users` row (which also removes their email/Apple identities
+  and sessions). The `ON DELETE CASCADE` foreign keys would remove the rows anyway; the explicit
+  deletes mean a missing FK can never leave orphaned personal data. If any step fails, the auth
+  user is kept and a 500 is returned, so a half-deleted account is never reported as success.
+  **Any new table holding per-user data must be added to `USER_TABLES` in this function.**
 
 ### Tests
 
 `supabase/tests/rls_tests.sql` exercises the ownership policies.
+`supabase/tests/account_deletion_tests.sql` deletes a throwaway user and asserts that none of
+their books, quotes, words, usage rows or identities survive, and that another user's rows are
+untouched. Both run inside a rolled-back transaction: `psql "$SUPABASE_DB_URL" -f <file>`.
 
 ---
 
@@ -607,3 +634,56 @@ URL scheme can't survive in that file. The ref is stored and the URL built in Sw
   collects them.
 - Neither key-gated Edge Function has caching or rate limiting.
 - Email confirmation is currently disabled for testing and must be re-enabled before release.
+
+---
+
+## 15. Privacy policy website
+
+A static site in `docs/`, served by **GitHub Pages** (Settings → Pages → *Deploy from a branch* →
+`main` / `/docs`). The repository is public, so no paid plan is needed.
+
+| File | Purpose |
+|---|---|
+| `docs/privacy/index.html` | The privacy policy: `https://ariq100.github.io/Book-Marker/privacy/` |
+| `docs/index.html` | Minimal landing page linking to it |
+| `docs/style.css` | Shared styling; follows the system light/dark setting |
+| `docs/.nojekyll` | Serve the files as-is, without a Jekyll build |
+
+The policy is written from what the code actually does, so **update it whenever data handling
+changes** (a new third-party service, a new stored field, analytics, and so on). It currently covers:
+account data (email, Apple identifier), user content, quote photos (sent to Gemini, never stored),
+the `quote_extractions` usage ledger, search queries and which provider receives them, hosting
+logs, what is *not* collected, security, retention, account deletion (§3, §12), user rights,
+children, and international transfers. It must stay consistent with `PrivacyInfo.xcprivacy` and
+the App Store Connect privacy label.
+
+The contact address in section 11 is a placeholder (`[contact email]`) and must be filled in
+before the page is published.
+
+---
+
+## 16. Supabase keep-alive
+
+Supabase pauses free-tier projects after **7 days without activity**. A paused project makes
+sign-in, sync and every Edge Function fail until it is restored by hand in the dashboard. The
+keep-alive job pings the project every 3 days so that never happens.
+
+- **`scripts/supabase_keepalive.sh`** — `POST`s to `/rest/v1/rpc/keepalive` with only the
+  **publishable** key (it refuses an `sb_secret_` key). The RPC runs `select now()` in Postgres,
+  so the API and the database both register activity, without touching any user data. It retries
+  4 times, 30 s apart (a waking project briefly returns 5xx), exits non-zero on failure, and
+  prints a hint on 404 (migration 0006 not applied). With no environment variables it reads
+  `Secrets.xcconfig`, so it can be run by hand from a dev machine.
+- **`supabase/migrations/0006_keepalive_rpc.sql`** — the `keepalive()` function: `SECURITY
+  INVOKER`, no arguments, no table access, `EXECUTE` granted only to `anon` and `authenticated`.
+- **`.github/workflows/supabase-keepalive.yml`** — runs the script at 09:00 UTC on days
+  1, 4, 7, … 31 of each month (never more than 3 days apart, including across month ends), plus a
+  manual *Run workflow* button. A failed ping fails the run, and GitHub emails the repo owner.
+  Needs repository secrets `SUPABASE_PROJECT_REF` and `SUPABASE_PUBLISHABLE_KEY`, and only runs
+  once the workflow file is on `main`.
+
+**Why GitHub Actions rather than a local cron job:** it runs whether or not any personal machine
+is switched on. **Caveat:** GitHub disables scheduled workflows in public repos after 60 days
+without commits. The workflow re-enables itself through the API on each run as a best-effort
+guard, and GitHub emails a warning before disabling it anyway.
+

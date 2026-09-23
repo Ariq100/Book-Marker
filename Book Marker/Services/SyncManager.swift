@@ -202,6 +202,9 @@ final class SyncManager {
     func resetLocalData() {
         debounceTask?.cancel()
         UserDefaults.standard.removeObject(forKey: Self.ownerDefaultsKey)
+        // Cached HTTP responses (book searches, dictionary lookups) can reveal what the previous
+        // account was reading.
+        URLCache.shared.removeAllCachedResponses()
         guard let context else { return }
         do {
             try context.delete(model: Quote.self)

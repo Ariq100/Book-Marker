@@ -38,8 +38,8 @@ struct SettingsView: View {
             }
             
             Section(header: Text("About")) {
-                // TODO: Replace with your actual Privacy Policy URL
-                Link("Privacy Policy", destination: URL(string: "https://example.com/privacy")!)
+                // Hosted by GitHub Pages from docs/privacy/ on the main branch.
+                Link("Privacy Policy", destination: URL(string: "https://ariq100.github.io/Book-Marker/privacy/")!)
             }
             
             Section {
@@ -50,7 +50,7 @@ struct SettingsView: View {
                     Text("Delete Account")
                 }
             } footer: {
-                Text("Deleting your account is permanent and cannot be undone.")
+                Text("Deleting your account permanently erases it along with all of your books, quotes and words, on this device and on our servers. This cannot be undone.")
             }
         }
         .navigationTitle("Settings")
@@ -89,7 +89,7 @@ struct SettingsView: View {
             
             Button("Cancel", role: .cancel) { }
         } message: {
-            Text("This action is irreversible. All your data will be permanently deleted.")
+            Text("This permanently deletes your account and all of your books, quotes and vocabulary words from our servers and this device. It cannot be undone.")
         }
         .alert("Error", isPresented: $showErrorAlert) {
             Button("OK", role: .cancel) { }

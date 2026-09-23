@@ -1,0 +1,47 @@
+# Keeps the Supabase project from being paused for inactivity (free-tier projects pause after
+# 7 days without activity, which takes the whole app offline). See scripts/supabase_keepalive.sh.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_PROJECT_REF      the project ref (the subdomain of <ref>.supabase.co)
+#   SUPABASE_PUBLISHABLE_KEY  the publishable/anon key — never the secret/service_role key
+#
+# Scheduled workflows only run from the default branch (main).
+name: Supabase keep-alive
+
+on:
+  schedule:
+    # 09:00 UTC on days 1, 4, 7, … 31 of each month: never more than 3 days apart, including
+    # across month boundaries (e.g. the 28th/31st → the 1st).
+    - cron: "0 9 */3 * *"
+  workflow_dispatch: # "Run workflow" button, for testing or an immediate ping
+
+permissions:
+  contents: read
+  actions: write # only for the re-enable step below
+
+concurrency:
+  group: supabase-keepalive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ping Supabase
+        env:
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: scripts/supabase_keepalive.sh
+
+      # GitHub disables scheduled workflows in public repos after 60 days without commits, which
+      # would silently stop the pings. Re-enabling the workflow through the API is a best-effort
+      # guard against that; GitHub also emails the repo owner before disabling it.
+      - name: Keep this schedule enabled
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method PUT "repos/${{ github.repository }}/actions/workflows/supabase-keepalive.yml/enable"

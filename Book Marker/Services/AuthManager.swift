@@ -176,11 +176,14 @@ final class AuthManager: NSObject {
         // Therefore, we invoke an Edge Function using the user's current JWT, and the function
         // (running securely on the server) uses the service_role key to delete the user.
         
+        // The function deletes every row the user owns and then the auth user itself. It throws
+        // on any non-2xx response, in which case nothing below runs and the user can retry.
         _ = try await client.functions.invoke("delete-account")
-        // Optionally handle response
-        
-        // After successful deletion on the backend, sign out locally
-        try await signOut()
+
+        // The account no longer exists server-side (its sessions were revoked with it), so a
+        // global sign-out would only fail against a deleted user. Clear the local session from
+        // the Keychain instead — and never let that step turn a completed deletion into an error.
+        try? await client.auth.signOut(scope: .local)
     }
 }
 

@@ -1,0 +1,3 @@
+# deploycheck suppressions — see tools/deploycheck/README.md
+# The scanner's own rule definitions and test fixtures contain the patterns it looks for.
+tools/deploycheck/

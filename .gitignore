@@ -15,3 +15,7 @@ SECRETS_SETUP.md
 SECURITY.md
 CONVERSATION_CONTEXT.txt
 DEFECTS_AND_FIXES.md
+
+# deploycheck build output and local reports
+tools/deploycheck/dist/
+deploycheck-report.*
