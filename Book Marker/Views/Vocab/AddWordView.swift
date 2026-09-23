@@ -11,6 +11,9 @@ struct AddWordView: View {
     @State private var isLookingUp = false
     @State private var lookupError: String?
     @State private var lookupTask: Task<Void, Never>?
+    /// The word most recently filled in from a lookup, so normalising `wordText` to it
+    /// doesn't kick off a second lookup for the same word.
+    @State private var lastLookedUpWord: String?
 
     private enum FocusField: Hashable { case word, definition }
     @FocusState private var focus: FocusField?
@@ -145,9 +148,12 @@ struct AddWordView: View {
     // MARK: - Logic
 
     private func triggerLookup(word: String) {
+        let trimmed = word.trimmingCharacters(in: .whitespaces)
+        if trimmed == lastLookedUpWord { return }
+        lastLookedUpWord = nil
         lookupTask?.cancel()
         lookupError = nil
-        let trimmed = word.trimmingCharacters(in: .whitespaces)
+        isLookingUp = false
         guard !trimmed.isEmpty else {
             definition = ""
             partOfSpeech = ""
@@ -166,11 +172,13 @@ struct AddWordView: View {
         do {
             let result = try await DictionaryService.shared.fetchDefinition(for: word)
             guard !Task.isCancelled else { return }
+            lastLookedUpWord = result.word
             wordText = result.word          // normalise casing
             partOfSpeech = result.partOfSpeech
             definition = result.definition
         } catch {
-            guard !Task.isCancelled else { return }
+            // A cancelled lookup was superseded by a newer one, which owns `isLookingUp`.
+            guard !Task.isCancelled, !(error is CancellationError) else { return }
             lookupError = error.localizedDescription
         }
         isLookingUp = false

@@ -4,6 +4,23 @@ A native iOS app for tracking what you read, capturing quotes straight from the 
 
 Built with SwiftUI and SwiftData. It works fully offline, and an optional Supabase account syncs your library across devices.
 
+## Screenshots
+
+<table>
+  <tr>
+    <th>Login</th>
+    <th>Home (Library)</th>
+    <th>Book Search</th>
+    <th>Vocab</th>
+  </tr>
+  <tr>
+    <td><img src="images/login.png" alt="Login screen" width="200"></td>
+    <td><img src="images/library.png" alt="Library home screen" width="200"></td>
+    <td><img src="images/search.png" alt="Book search screen" width="200"></td>
+    <td><img src="images/vocab.png" alt="Vocab screen" width="200"></td>
+  </tr>
+</table>
+
 ## Features
 
 - **Library**: add books to *Reading*, *Bucket List*, or *Done* shelves. Covers are cached on the device.
